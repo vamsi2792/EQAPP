@@ -1,172 +1,220 @@
-# 🌍 EarthQuest – Project Setup & Overview
+# 🌍 EarthQuest
 
-EarthQuest is a **research-driven, narrative-based role-playing game companion platform** designed to enhance a sustainability-focused tabletop RPG set in a near-future Anthropocene world. The platform digitizes player identity, progression, collaboration, and storytelling while preserving the original gameplay experience.
+**A research-driven, narrative-based role-playing game companion platform**
 
-This repository contains the **initial backend and frontend setup** for the EarthQuest mobile application.
+EarthQuest enhances a sustainability-focused tabletop RPG set in a near-future Anthropocene world. The platform digitizes player identity, progression, collaboration, and storytelling while preserving the original gameplay experience.
 
 ---
 
-## 📁 Repository Structure
+## 📁 Project Structure
 
+```
 EQAPP/
-├── backend/ # Node.js + Express backend
-├── frontend/ # React Native (Expo) mobile app
-├── README.md
-
+├── backend/          # Node.js + Express API
+├── frontend/         # React Native (Expo) mobile app
+└── README.md
+```
 
 ---
 
-## 🧩 Tech Stack (Current)
+## 🛠️ Technology Stack
 
-### Backend
-- Node.js
-- Express.js
-- MongoDB (Mongoose)
+**Backend**
+- Node.js & Express.js
+- MongoDB with Mongoose ODM
 - JWT Authentication
-- bcrypt (password hashing)
+- bcrypt for password hashing
 
-### Frontend
+**Frontend**
 - React Native
 - Expo
 - TypeScript
 
 ---
 
-## ✅ Prerequisites
+## 📋 Prerequisites
 
-Make sure the following are installed before starting:
+Before you begin, ensure you have the following installed:
 
-### 1. Node.js (Required)
-Download and install **Node.js (LTS)**  
-https://nodejs.org/
+### 1. **Node.js** (Required)
+- Download and install [Node.js LTS](https://nodejs.org/)
+- Verify installation:
+  ```bash
+  node -v
+  npm -v
+  ```
 
-Verify installation:
+### 2. **Git** (Required)
+- Download [Git](https://git-scm.com/)
+- Verify installation:
+  ```bash
+  git --version
+  ```
+
+### 3. **Expo CLI** (Required for Frontend)
+- Install globally:
+  ```bash
+  npm install -g expo-cli
+  ```
+- Verify installation:
+  ```bash
+  expo --version
+  ```
+
+### 4. **Mobile Testing** (Choose One)
+- **Expo Go App**: Install on your iOS or Android device
+- **Android Studio**: For Android emulator
+- **Xcode**: For iOS simulator (macOS only)
+
+---
+
+## 🚀 Backend Setup
+
+### Step 1: Navigate to Backend Directory
 ```bash
-node -v
-npm -v
-
-2. Git (Required)
-
-Download Git:
-https://git-scm.com/
-
-Verify: git --version
-
-3. MongoDB (Required for Backend)
-
-Choose one option:
-
-Option A – Local MongoDB
-https://www.mongodb.com/try/download/community
-
-Option B – MongoDB Atlas (Recommended)
-https://www.mongodb.com/cloud/atlas
-
-Create a free cluster and copy your connection string.
-
-4. Expo CLI (Frontend)
-
-Install Expo CLI globally:
-
-npm install -g expo-cli
-
-
-Verify:
-
-expo --version
-
-🚀 Backend Setup (Node.js + Express)
-Step 1: Navigate to Backend
 cd backend
+```
 
-Step 2: Install Dependencies
+### Step 2: Install Dependencies
+```bash
 npm install
+```
 
-Step 3: Environment Variables
-
-Create a .env file inside the backend/ folder:
-
-PORT=5000
-JWT_SECRET=earthquest_secret
-MONGO_URI=mongodb://127.0.0.1:27017/earthquest
-
-
-If using MongoDB Atlas, replace MONGO_URI with your Atlas connection string.
-
-Step 4: Start Backend Server
+### Step 3: Start the Development Server
+```bash
 npm run dev
+```
 
-
-Expected output:
-
-MongoDB connected
+**Expected Output:**
+```
+[nodemon] 3.1.11
+[nodemon] to restart at any time, enter `rs`
+[nodemon] watching path(s): *.*
+[nodemon] watching extensions: js,mjs,cjs,json
+[nodemon] starting `node src/server.js`
 Server running on port 5000
+```
 
-
-Test in browser:
-
+### Step 4: Test the API
+Open your browser and navigate to:
+```
 http://localhost:5000
+```
 
+**Expected Response:**
+```json
+"EarthQuest API running"
+```
 
-Expected response:
+---
 
-EarthQuest API running
+## 🔐 Authentication Endpoints
 
-🔐 Authentication APIs (Implemented)
-Register User
+> **Note:** Authentication endpoints will be implemented in future updates. The basic server setup is now complete.
 
-POST /api/auth/register
+---
 
-{
-  "name": "Test User",
-  "email": "test@earthquest.org",
-  "password": "password123"
-}
+## 📱 Frontend Setup
 
-Login User
-
-POST /api/auth/login
-
-{
-  "email": "test@earthquest.org",
-  "password": "password123"
-}
-
-
-Response includes:
-
-JWT token
-
-User object (id, name, role)
-
-📱 Frontend Setup (React Native + Expo)
-Step 1: Navigate to Frontend
+### Step 1: Navigate to Frontend Directory
+```bash
 cd frontend
+```
 
+If your app is nested in an `app/` folder:
+```bash
+cd frontend/app
+```
 
-If the app is inside an app folder:
-
-cd app
-
-Step 2: Install Dependencies
+### Step 2: Install Dependencies
+```bash
 npm install
+```
 
-Step 3: Start Expo App
+### Step 3: Start Expo Development Server
+```bash
 expo start
-
+```
 
 This will:
+- Open Expo DevTools in your browser
+- Display a QR code in the terminal
+- Show options for running on different platforms
 
-Open Expo DevTools in the browser
+### Step 4: Run the App
 
-Show a QR code in the terminal
+Choose your preferred method:
 
-Step 4: Run the App
+#### 📱 **Physical Device**
+1. Install **Expo Go** from App Store (iOS) or Google Play (Android)
+2. Scan the QR code displayed in your terminal
 
-Choose one:
+#### 🤖 **Android Emulator**
+- Press `a` in the terminal
+- Requires Android Studio with an emulator configured
 
-📱 Scan QR code using Expo Go app
+#### 🍎 **iOS Simulator** (macOS only)
+- Press `i` in the terminal
+- Requires Xcode installed
 
-🖥️ Android Emulator
+---
 
-🍎 iOS Simulator (Mac only)
+## 🔄 Development Workflow
+
+### Backend
+```bash
+cd backend
+npm run dev          # Start development server with hot reload
+```
+
+### Frontend
+```bash
+cd frontend
+expo start           # Start Expo development server
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Expo Not Starting
+```bash
+# Clear Expo cache
+expo start -c
+
+# Reinstall dependencies
+rm -rf node_modules
+npm install
+```
+
+### Port Already in Use
+```bash
+# Kill process on port 5000 (macOS/Linux)
+lsof -ti:5000 | xargs kill -9
+
+# Windows
+netstat -ano | findstr :5000
+taskkill /PID <PID> /F
+```
+
+---
+
+## 📚 Next Steps
+
+- [ ] Integrate MongoDB database
+- [ ] Set up authentication system (JWT)
+- [ ] Create character creation endpoints
+- [ ] Implement campaign management
+- [ ] Design UI/UX for mobile app
+- [ ] Add real-time collaboration features
+- [ ] Integrate storytelling mechanics
+
+---
+
+## 🤝 Contributing
+
+
+## 📄 License
+
+
+
