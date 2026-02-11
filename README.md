@@ -1,10 +1,8 @@
 # 🌍 EarthQuest
 
-**A research-driven, narrative-based role-playing game companion platform**
+A research-driven, narrative-based role-playing game companion platform
 
 EarthQuest enhances a sustainability-focused tabletop RPG set in a near-future Anthropocene world. The platform digitizes player identity, progression, collaboration, and storytelling while preserving the original gameplay experience.
-
----
 
 ## 📁 Project Structure
 
@@ -15,206 +13,275 @@ EQAPP/
 └── README.md
 ```
 
----
-
 ## 🛠️ Technology Stack
 
-**Backend**
-- Node.js & Express.js
-- MongoDB with Mongoose ODM
+### Backend
+- Node.js
+- Express.js
+- MongoDB (Atlas)
+- Mongoose ODM
 - JWT Authentication
-- bcrypt for password hashing
+- bcryptjs (password hashing)
+- dotenv
+- cors
+- nodemon (dev)
 
-**Frontend**
+### Frontend
 - React Native
 - Expo
 - TypeScript
-
----
+- React Navigation
+- AsyncStorage
+- @react-native-picker/picker
 
 ## 📋 Prerequisites
 
-Before you begin, ensure you have the following installed:
+### 1️⃣ Node.js (Required)
 
-### 1. **Node.js** (Required)
-- Download and install [Node.js LTS](https://nodejs.org/)
-- Verify installation:
-  ```bash
-  node -v
-  npm -v
-  ```
+Download and install Node.js LTS  
+https://nodejs.org/
 
-### 2. **Git** (Required)
-- Download [Git](https://git-scm.com/)
-- Verify installation:
-  ```bash
-  git --version
-  ```
+Verify:
+```bash
+node -v
+npm -v
+```
 
-### 3. **Expo CLI** (Required for Frontend)
-- Install globally:
-  ```bash
-  npm install -g expo-cli
-  ```
-- Verify installation:
-  ```bash
-  expo --version
-  ```
+### 2️⃣ Git (Required)
 
-### 4. **Mobile Testing** (Choose One)
-- **Expo Go App**: Install on your iOS or Android device
-- **Android Studio**: For Android emulator
-- **Xcode**: For iOS simulator (macOS only)
+Download Git:  
+https://git-scm.com/
 
----
+Verify:
+```bash
+git --version
+```
+
+### 3️⃣ Expo CLI (Frontend)
+```bash
+npm install -g expo-cli
+expo --version
+```
+
+### 4️⃣ Mobile Testing
+- Expo Go (Android / iOS)
+- Android Studio (Android emulator)
+- Xcode (macOS only)
+
+## 🍃 MongoDB Setup (Required)
+
+EarthQuest uses MongoDB Atlas (cloud) — no local MongoDB installation is required.
+
+### Step 1: Create MongoDB Atlas Account
+
+https://www.mongodb.com/cloud/atlas
+
+- Sign up (free)
+- No credit card required
+
+### Step 2: Create a Free Cluster
+
+- Choose M0 (Free Tier)
+- Cloud provider: AWS
+- Region: nearest to you
+- Create cluster
+
+### Step 3: Create Database User
+
+Go to:  
+**Security → Database Access**
+
+- Username: `earthquest_user` (or your choice)
+- Password: create a strong password
+- Save credentials
+
+⚠️ **If your password contains special characters (@ / : #), they must be URL-encoded.**
+
+### Step 4: Allow Network Access
+
+Go to:  
+**Security → Network Access**
+
+Add IP:
+```
+0.0.0.0/0
+```
+
+(This allows access from any device during development.)
+
+### Step 5: Get Connection String
+
+Go to:  
+**Database → Connect → Connect your application**
+
+Copy the URI:
+```
+mongodb+srv://<username>:<password>@cluster.mongodb.net/
+```
+
+Append database name:
+```
+/earthquest
+```
+
+Example:
+```
+mongodb+srv://earthquest_user:password@cluster0.mongodb.net/earthquest
+```
 
 ## 🚀 Backend Setup
 
-### Step 1: Navigate to Backend Directory
+### Step 1: Navigate to Backend
 ```bash
 cd backend
 ```
 
-### Step 2: Install Dependencies
+### Step 2: Install Backend Dependencies
 ```bash
 npm install
 ```
 
-### Step 3: Start the Development Server
+Installed packages:
+- express
+- mongoose
+- bcryptjs
+- jsonwebtoken
+- dotenv
+- cors
+- nodemon
+
+### Step 3: Environment Variables
+
+Create `.env` inside `backend/`:
+
+```env
+PORT=5000
+MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/earthquest
+JWT_SECRET=earthquest_super_secret
+JWT_EXPIRES_IN=7d
+```
+
+### Step 4: Start Backend Server
 ```bash
 npm run dev
 ```
 
-**Expected Output:**
+Expected output:
 ```
-[nodemon] 3.1.11
-[nodemon] to restart at any time, enter `rs`
-[nodemon] watching path(s): *.*
-[nodemon] watching extensions: js,mjs,cjs,json
-[nodemon] starting `node src/server.js`
+MongoDB connected
 Server running on port 5000
 ```
 
-### Step 4: Test the API
-Open your browser and navigate to:
+### Step 5: Test Backend
+
+Open browser:
 ```
 http://localhost:5000
 ```
 
-**Expected Response:**
-```json
-"EarthQuest API running"
+Response:
+```
+EarthQuest API running
 ```
 
----
+## 🔐 Authentication (Implemented)
 
-## 🔐 Authentication Endpoints
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/signup` | Register new user |
+| POST | `/api/auth/login` | Login + JWT |
+| GET | `/api/auth/me` | Protected route |
 
-> **Note:** Authentication endpoints will be implemented in future updates. The basic server setup is now complete.
-
----
+Protected routes require:
+```
+Authorization: Bearer <JWT_TOKEN>
+```
 
 ## 📱 Frontend Setup
 
-### Step 1: Navigate to Frontend Directory
+### Step 1: Navigate to Frontend
 ```bash
 cd frontend
 ```
 
-If your app is nested in an `app/` folder:
+If nested:
 ```bash
 cd frontend/app
 ```
 
-### Step 2: Install Dependencies
+### Step 2: Install Frontend Dependencies
 ```bash
 npm install
 ```
 
-### Step 3: Start Expo Development Server
+Installed packages:
+- expo
+- react-native
+- @react-navigation/native
+- @react-navigation/native-stack
+- @react-native-async-storage/async-storage
+- @react-native-picker/picker
+
+### Step 3: API Configuration (Important)
+
+Create:
+```typescript
+// frontend/config/api.ts
+import { Platform } from "react-native";
+
+export const API_URL =
+  Platform.OS === "web"
+    ? "http://localhost:5000"
+    : "http://192.168.1.32:5000"; // replace with your Wi-Fi IPv4
+```
+
+Use everywhere:
+```typescript
+import { API_URL } from "../config/api";
+```
+
+### Step 4: Start Expo
 ```bash
 expo start
 ```
-
-This will:
-- Open Expo DevTools in your browser
-- Display a QR code in the terminal
-- Show options for running on different platforms
-
-### Step 4: Run the App
-
-Choose your preferred method:
-
-#### 📱 **Physical Device**
-1. Install **Expo Go** from App Store (iOS) or Google Play (Android)
-2. Scan the QR code displayed in your terminal
-
-#### 🤖 **Android Emulator**
-- Press `a` in the terminal
-- Requires Android Studio with an emulator configured
-
-#### 🍎 **iOS Simulator** (macOS only)
-- Press `i` in the terminal
-- Requires Xcode installed
-
----
 
 ## 🔄 Development Workflow
 
 ### Backend
 ```bash
 cd backend
-npm run dev          # Start development server with hot reload
+npm run dev
 ```
 
 ### Frontend
 ```bash
 cd frontend
-expo start           # Start Expo development server
+expo start
 ```
-
----
 
 ## 🐛 Troubleshooting
 
-### Expo Not Starting
+### Mobile Login Timeout
+- Phone & laptop must be on same Wi-Fi
+- Use Wi-Fi IPv4 (not localhost)
+- Check Windows Firewall allows Node.js
+
+### Clear Expo Cache
 ```bash
-# Clear Expo cache
 expo start -c
-
-# Reinstall dependencies
-rm -rf node_modules
-npm install
 ```
-
-### Port Already in Use
-```bash
-# Kill process on port 5000 (macOS/Linux)
-lsof -ti:5000 | xargs kill -9
-
-# Windows
-netstat -ano | findstr :5000
-taskkill /PID <PID> /F
-```
-
----
 
 ## 📚 Next Steps
 
-- [ ] Integrate MongoDB database
-- [ ] Set up authentication system (JWT)
-- [ ] Create character creation endpoints
-- [ ] Implement campaign management
-- [ ] Design UI/UX for mobile app
-- [ ] Add real-time collaboration features
-- [ ] Integrate storytelling mechanics
-
----
+- Player profile screen
+- Badge & level system
+- Club / campaign flow
+- Storefront & membership
+- Forum & collaboration tools
 
 ## 🤝 Contributing
 
+This is a research project.  
+Coordinate changes via GitHub issues or pull requests.
 
 ## 📄 License
-
-
-
