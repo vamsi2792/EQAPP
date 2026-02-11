@@ -156,9 +156,9 @@ Create `.env` inside `backend/`:
 
 ```env
 PORT=5000
-MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/earthquest
-JWT_SECRET=earthquest_super_secret
-JWT_EXPIRES_IN=7d
+MONGO_URI
+JWT_SECRET
+JWT_EXPIRES_IN
 ```
 
 ### Step 4: Start Backend Server
