@@ -1,18 +1,23 @@
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { AuthContext } from "../App";
 
-import { View, Text, TextInput, StyleSheet, Pressable } from "react-native";
-import { useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  Pressable,
+} from "react-native";
 
-const API_URL = "http://192.168.1.32:5000"; 
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function LoginScreen({ navigation }: any) {
+  const { login } = useContext(AuthContext);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-const { checkAuth } = useContext(AuthContext);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -26,9 +31,7 @@ const { checkAuth } = useContext(AuthContext);
 
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
@@ -36,18 +39,15 @@ const { checkAuth } = useContext(AuthContext);
 
       if (!response.ok) {
         setError(data.message || "Login failed");
-        setLoading(false);
         return;
       }
 
-      // 🔐 STORE JWT TOKEN
-      await AsyncStorage.setItem("authToken", data.token);
-await checkAuth();
-      // (Optional) store user info
-      await AsyncStorage.setItem("user", JSON.stringify(data.user));
+      // 🔐 Use context login
+      await login(data.token);
 
-      // 🚀 Navigate to Landing Page
-      // navigation.replace("Landing");
+      // Optional
+      // await AsyncStorage.setItem("user", JSON.stringify(data.user));
+
     } catch (err) {
       console.error("Login error:", err);
       setError("Something went wrong. Please try again.");
@@ -90,6 +90,12 @@ await checkAuth();
         >
           <Text style={styles.primaryText}>
             {loading ? "Logging in..." : "Login"}
+          </Text>
+        </Pressable>
+
+        <Pressable onPress={() => navigation.navigate("ForgotPassword")}>
+          <Text style={{ textAlign: "right", color: "#3C8D65" }}>
+            Forgot Password?
           </Text>
         </Pressable>
 
@@ -152,19 +158,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
   },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 20,
-  },
-  footerText: {
-    color: "#5F7D6C",
-    fontSize: 13,
-  },
   link: {
     color: "#3C8D65",
     fontSize: 13,
     fontWeight: "600",
+    marginTop: 10,
+    textAlign: "center",
   },
   errorText: {
     color: "#C0392B",

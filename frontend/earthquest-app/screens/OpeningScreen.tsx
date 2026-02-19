@@ -1,21 +1,20 @@
 import { View, Text, StyleSheet, Pressable, Animated } from "react-native";
 import { useEffect, useRef } from "react";
-import FloatingOrb from "../components/FloatingOrb";
 
 export default function OpeningScreen({ navigation }: any) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const translateAnim = useRef(new Animated.Value(20)).current;
+  const translateAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 900,
+        duration: 1000,
         useNativeDriver: true,
       }),
       Animated.timing(translateAnim, {
         toValue: 0,
-        duration: 900,
+        duration: 1000,
         useNativeDriver: true,
       }),
     ]).start();
@@ -23,13 +22,6 @@ export default function OpeningScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      {/* Ambient background animation */}
-      <FloatingOrb />
-
-      {/* Overlay for contrast */}
-      <View style={styles.overlay} />
-
-      {/* Main content */}
       <Animated.View
         style={[
           styles.content,
@@ -40,101 +32,93 @@ export default function OpeningScreen({ navigation }: any) {
         ]}
       >
         <Text style={styles.title}>EarthQuest</Text>
+        <Text style={styles.subtitle}>The Game</Text>
 
-        <Text style={styles.tagline}>
-          Sustainability · Strategy · Storytelling
-        </Text>
-
-        <Text style={styles.description}>
-          Step into a near-future world where your choices shape communities,
-          ecosystems, and the story of our planet.
-        </Text>
-
-        <Pressable
-          style={styles.primaryButton}
-          onPress={() => navigation.navigate("Login")}
-        >
-          <Text style={styles.primaryText}>Login</Text>
-        </Pressable>
-
-        <Pressable
-          style={styles.secondaryButton}
-          onPress={() => navigation.navigate("Signup")}
-        >
-          <Text style={styles.secondaryText}>Sign Up</Text>
-        </Pressable>
-
-        <Pressable>
-          <Text style={styles.link}>About EarthQuest</Text>
-        </Pressable>
+        <View style={styles.menuContainer}>
+          <MenuItem text="About EarthQuest" />
+          <MenuItem text="How to Play EarthQuest" />
+          <MenuItem
+            text="Register or Login"
+            onPress={() => navigation.navigate("Login")}
+          />
+          <MenuItem text="Become a Member" />
+          <MenuItem text="EarthQuest Storefront" />
+        </View>
       </Animated.View>
     </View>
   );
 }
+
+function MenuItem({
+  text,
+  onPress,
+}: {
+  text: string;
+  onPress?: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.button,
+        pressed && styles.buttonPressed,
+      ]}
+    >
+      <Text style={styles.buttonText}>{text}</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1E2A24",
+    backgroundColor: "#0E1A14", // deep forest tone
     justifyContent: "center",
     alignItems: "center",
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    paddingHorizontal: 28,
   },
   content: {
-    width: "85%",
+    width: "100%",
     alignItems: "center",
   },
   title: {
-    fontSize: 38,
-    fontWeight: "700",
-    color: "#E9F3ED",
-    marginBottom: 8,
-    letterSpacing: 0.5,
+    fontSize: 42,
+    fontWeight: "800",
+    color: "#E8F5E9",
+    letterSpacing: 1,
   },
-  tagline: {
-    fontSize: 15,
-    color: "#CFE3D6",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  description: {
-    fontSize: 14,
-    color: "#B7CEC1",
-    textAlign: "center",
-    marginBottom: 36,
-    lineHeight: 20,
-  },
-  primaryButton: {
-    width: "100%",
-    paddingVertical: 14,
-    backgroundColor: "#74B08A",
-    borderRadius: 12,
-    marginBottom: 14,
-  },
-  primaryText: {
-    textAlign: "center",
-    color: "#0E1A14",
-    fontWeight: "600",
+  subtitle: {
     fontSize: 16,
+    color: "#8DBFA1",
+    marginBottom: 50,
+    letterSpacing: 2,
   },
-  secondaryButton: {
+  menuContainer: {
     width: "100%",
-    paddingVertical: 14,
-    borderWidth: 1,
+  },
+  button: {
+    backgroundColor: "#1E5F3A",
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderRadius: 14,
+    marginBottom: 18,
+    borderWidth: 2,
     borderColor: "#74B08A",
-    borderRadius: 12,
-    marginBottom: 22,
+    shadowColor: "#000",
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+    alignItems: "center",
   },
-  secondaryText: {
-    textAlign: "center",
-    color: "#E9F3ED",
-    fontSize: 16,
+  buttonPressed: {
+    backgroundColor: "#174D2E",
+    transform: [{ scale: 0.97 }],
   },
-  link: {
-    color: "#9ED3B2",
-    fontSize: 13,
-    textDecorationLine: "underline",
+  buttonText: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#EAF4EE",
+    letterSpacing: 0.5,
   },
 });
