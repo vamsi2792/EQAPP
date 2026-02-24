@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no"/>
+  <title>EarthQuest 3D</title>
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/dark/main.css"/>
+  <script src="https://js.arcgis.com/4.29/"></script>
+
+  <style>
+    html, body, #viewDiv {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      background: black;
+    }
+  </style>
+
+  <script>
+    require(["esri/WebScene", "esri/views/SceneView"], 
+    function(WebScene, SceneView) {
+
+      const webscene = new WebScene({
+        portalItem: {
+          id: "4fda049729b44251b6a9cf49a50a185a"
+        }
+      });
+
+      const view = new SceneView({
+        container: "viewDiv",
+        map: webscene,
+        qualityProfile: "high"
+      });
+
+    });
+  </script>
+</head>
+
+<body>
+  <div id="viewDiv"></div>
+</body>
+</html>
