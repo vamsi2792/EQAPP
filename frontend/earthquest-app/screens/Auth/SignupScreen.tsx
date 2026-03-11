@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useState } from "react";
-import SearchableDropdown from "../components/SearchableDropdown";
+import SearchableDropdown from "../../components/SearchableDropdown";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
