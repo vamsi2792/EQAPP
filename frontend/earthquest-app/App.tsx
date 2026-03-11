@@ -12,6 +12,7 @@ import MyProfileScreen from "./screens/MyProfileScreen";
 import VerifyEmailScreen from "./screens/Auth/VerifyEmailScreen";
 import ForgotPasswordScreen from "./screens/Auth/ForgotPasswordScreen";
 import ResetPasswordScreen from "./screens/Auth/ResetPasswordScreen";
+import MapScreen from "./screens/MapScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -66,6 +67,7 @@ export default function App() {
           ) : (
             <>
               <Stack.Screen name="Landing" component={LandingScreen} />
+              <Stack.Screen name="Map" component={MapScreen} />
               <Stack.Screen name="MyProfileScreen" component={MyProfileScreen} />
             </>
           )}

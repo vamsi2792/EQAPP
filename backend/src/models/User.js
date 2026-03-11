@@ -2,8 +2,15 @@ const mongoose = require("mongoose");
 
 const UserSchema = new mongoose.Schema(
   {
+    // BASIC USER INFO
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
+
+    username: {
+      type: String,
+      unique: true,
+      sparse: true, // allows null for existing users
+    },
 
     email: {
       type: String,
@@ -14,6 +21,7 @@ const UserSchema = new mongoose.Schema(
 
     password: { type: String, required: true },
 
+    // PROFILE DETAILS
     profile: {
       age: String,
       gender: String,
@@ -22,9 +30,52 @@ const UserSchema = new mongoose.Schema(
       location: String,
     },
 
+    // ACCOUNT TYPE
+    accountType: {
+      type: String,
+      enum: ["registrant", "member", "gm"],
+      default: "registrant",
+    },
+
+    // MEMBERSHIP STATUS
+    membershipActive: {
+      type: Boolean,
+      default: false,
+    },
+
+    // CLUB INFORMATION
     clubCode: {
       type: String,
       default: null,
+    },
+
+    clubRole: {
+      type: String,
+      enum: ["member", "gm"],
+      default: null,
+    },
+
+    clubApproved: {
+      type: Boolean,
+      default: false,
+    },
+
+    // ADVENTURE PROGRESS
+    completedAdventures: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Adventure",
+      },
+    ],
+
+    xp: {
+      type: Number,
+      default: 0,
+    },
+
+    level: {
+      type: Number,
+      default: 1,
     },
 
     // 🔐 EMAIL VERIFICATION

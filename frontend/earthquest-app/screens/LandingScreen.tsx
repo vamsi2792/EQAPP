@@ -65,7 +65,7 @@ export default function LandingScreen({ navigation }: any) {
             styles.playButton,
             pressed && styles.playPressed,
           ]}
-          onPress={() => navigation.navigate("Adventure")}
+          onPress={() => navigation.navigate("Map")}
         >
           <Text style={styles.playText}>Play EarthQuest</Text>
         </Pressable>
