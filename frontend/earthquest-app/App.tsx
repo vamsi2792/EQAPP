@@ -11,6 +11,7 @@ import LandingScreen from "./screens/LandingScreen";
 import VerifyEmailScreen from "./screens/VerifyEmailScreen";
 import ForgotPasswordScreen from "./screens/ForgotPasswordScreen";
 import ResetPasswordScreen from "./screens/ResetPasswordScreen";
+import MapScreen from "./screens/MapScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -63,7 +64,10 @@ export default function App() {
               <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
             </>
           ) : (
-            <Stack.Screen name="Landing" component={LandingScreen} />
+            <>
+  <Stack.Screen name="Landing" component={LandingScreen} />
+  <Stack.Screen name="Map" component={MapScreen} />
+</>
           )}
         </Stack.Navigator>
       </NavigationContainer>
