@@ -5,12 +5,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { View, ActivityIndicator } from "react-native";
 
 import OpeningScreen from "./screens/OpeningScreen";
-import LoginScreen from "./screens/LoginScreen";
-import SignupScreen from "./screens/SignupScreen";
+import LoginScreen from "./screens/Auth/LoginScreen";
+import SignupScreen from "./screens/Auth/SignupScreen";
 import LandingScreen from "./screens/LandingScreen";
-import VerifyEmailScreen from "./screens/VerifyEmailScreen";
-import ForgotPasswordScreen from "./screens/ForgotPasswordScreen";
-import ResetPasswordScreen from "./screens/ResetPasswordScreen";
+import MyProfileScreen from "./screens/MyProfileScreen";
+import VerifyEmailScreen from "./screens/Auth/VerifyEmailScreen";
+import ForgotPasswordScreen from "./screens/Auth/ForgotPasswordScreen";
+import ResetPasswordScreen from "./screens/Auth/ResetPasswordScreen";
 import MapScreen from "./screens/MapScreen";
 
 const Stack = createNativeStackNavigator();
@@ -65,9 +66,10 @@ export default function App() {
             </>
           ) : (
             <>
-  <Stack.Screen name="Landing" component={LandingScreen} />
-  <Stack.Screen name="Map" component={MapScreen} />
-</>
+              <Stack.Screen name="Landing" component={LandingScreen} />
+              <Stack.Screen name="Map" component={MapScreen} />
+              <Stack.Screen name="MyProfileScreen" component={MyProfileScreen} />
+            </>
           )}
         </Stack.Navigator>
       </NavigationContainer>

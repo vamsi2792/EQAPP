@@ -1,11 +1,12 @@
-import { View, Text, StyleSheet, Pressable, Animated } from "react-native";
-import { useEffect, useRef, useContext } from "react";
+import { View, Text, StyleSheet, Pressable, Animated, Modal, TouchableOpacity } from "react-native";
+import { useEffect, useRef, useContext, useState } from "react";
 import { AuthContext } from "../App";
 
 export default function LandingScreen({ navigation }: any) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateAnim = useRef(new Animated.Value(30)).current;
   const { logout } = useContext(AuthContext);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   useEffect(() => {
     Animated.parallel([
@@ -22,19 +23,21 @@ export default function LandingScreen({ navigation }: any) {
     ]).start();
   }, []);
 
+  const handleLogout = () => {
+    setMenuVisible(false);
+    logout();
+  };
+
   return (
     <View style={styles.container}>
       
-      {/* 🔓 Logout floating top-right */}
-      <Pressable
-        style={({ pressed }) => [
-          styles.logoutButton,
-          pressed && styles.logoutPressed,
-        ]}
-        onPress={logout}
+      {/* ☰ Hamburger Icon */}
+      <TouchableOpacity
+        style={styles.hamburger}
+        onPress={() => setMenuVisible(true)}
       >
-        <Text style={styles.logoutText}>Logout</Text>
-      </Pressable>
+        <Text style={styles.hamburgerText}>☰</Text>
+      </TouchableOpacity>
 
       <Animated.View
         style={[
@@ -67,6 +70,43 @@ export default function LandingScreen({ navigation }: any) {
           <Text style={styles.playText}>Play EarthQuest</Text>
         </Pressable>
       </Animated.View>
+
+      {/* Modal for Hamburger Menu */}
+      <Modal
+        visible={menuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setMenuVisible(false)}
+        >
+          <View style={styles.modalContent}>
+            
+
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setMenuVisible(false);
+                navigation.navigate("MyProfileScreen");
+              }}
+            >
+              <Text style={styles.modalButtonText}>My Profile</Text>
+            </TouchableOpacity>
+
+
+
+            <TouchableOpacity
+              style={[styles.modalButton, styles.logoutModalButton]}
+              onPress={handleLogout}
+            >
+              <Text style={styles.logoutModalButtonText}>Logout</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -99,28 +139,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  logoutButton: {
+  hamburger: {
     position: "absolute",
     top: 50,
-    right: 25,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: "#74B08A",
-    backgroundColor: "#123524",
+    right: 20,
     zIndex: 10,
+    padding: 10,
   },
 
-  logoutPressed: {
-    backgroundColor: "#0C2F23",
-    transform: [{ scale: 0.95 }],
-  },
-
-  logoutText: {
-    color: "#EAF4EE",
-    fontWeight: "600",
-    fontSize: 14,
+  hamburgerText: {
+    fontSize: 28,
+    color: "#E8F5E9",
+    fontWeight: "bold",
   },
 
   content: {
@@ -200,5 +230,50 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#E8F5E9",
     letterSpacing: 1.5,
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-start",
+    alignItems: "flex-end",
+  },
+
+  modalContent: {
+    backgroundColor: "#0E1A14",
+    borderRadius: 12,
+    width: "60%",
+    marginTop: 100,
+    marginRight: 10,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: "#74B08A",
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+
+  modalButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1E5F3A",
+  },
+
+  logoutModalButton: {
+    borderBottomWidth: 0,
+  },
+
+  modalButtonText: {
+    fontSize: 16,
+    color: "#EAF4EE",
+    fontWeight: "600",
+  },
+
+  logoutModalButtonText: {
+    fontSize: 16,
+    color: "#FF6B6B",
+    fontWeight: "600",
   },
 });
