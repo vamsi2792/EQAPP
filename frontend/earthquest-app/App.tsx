@@ -13,6 +13,8 @@ import VerifyEmailScreen from "./screens/Auth/VerifyEmailScreen";
 import ForgotPasswordScreen from "./screens/Auth/ForgotPasswordScreen";
 import ResetPasswordScreen from "./screens/Auth/ResetPasswordScreen";
 import MapScreen from "./screens/MapScreen";
+import AboutEarthQuest from "./screens/AboutEarthQuest";
+import HowToPlayEarthQuest from "./screens/HowToPlayEarthQuest";
 
 const Stack = createNativeStackNavigator();
 
@@ -61,16 +63,32 @@ export default function App() {
               <Stack.Screen name="Login" component={LoginScreen} />
               <Stack.Screen name="Signup" component={SignupScreen} />
               <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
-              <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-              <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+              <Stack.Screen
+                name="ForgotPassword"
+                component={ForgotPasswordScreen}
+              />
+              <Stack.Screen
+                name="ResetPassword"
+                component={ResetPasswordScreen}
+              />
             </>
           ) : (
             <>
               <Stack.Screen name="Landing" component={LandingScreen} />
               <Stack.Screen name="Map" component={MapScreen} />
-              <Stack.Screen name="MyProfileScreen" component={MyProfileScreen} />
+              <Stack.Screen
+                name="MyProfileScreen"
+                component={MyProfileScreen}
+              />
             </>
           )}
+
+          {/* Accessible before AND after login */}
+          <Stack.Screen name="AboutEarthQuest" component={AboutEarthQuest} />
+          <Stack.Screen
+            name="HowToPlayEarthQuest"
+            component={HowToPlayEarthQuest}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthContext.Provider>
