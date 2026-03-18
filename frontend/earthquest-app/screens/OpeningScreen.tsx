@@ -35,8 +35,14 @@ export default function OpeningScreen({ navigation }: any) {
         <Text style={styles.subtitle}>The Game</Text>
 
         <View style={styles.menuContainer}>
-          <MenuItem text="About EarthQuest" />
-          <MenuItem text="How to Play EarthQuest" />
+          <MenuItem
+            text="About EarthQuest"
+            onPress={() => navigation.navigate("AboutEarthQuest")}
+          />
+          <MenuItem
+            text="How to Play EarthQuest"
+            onPress={() => navigation.navigate("HowToPlayEarthQuest")}
+          />
           <MenuItem
             text="Register or Login"
             onPress={() => navigation.navigate("Login")}
@@ -49,20 +55,11 @@ export default function OpeningScreen({ navigation }: any) {
   );
 }
 
-function MenuItem({
-  text,
-  onPress,
-}: {
-  text: string;
-  onPress?: () => void;
-}) {
+function MenuItem({ text, onPress }: { text: string; onPress?: () => void }) {
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        pressed && styles.buttonPressed,
-      ]}
+      style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
     >
       <Text style={styles.buttonText}>{text}</Text>
     </Pressable>
