@@ -1,5 +1,55 @@
 const mongoose = require("mongoose");
 
+/* ===================== PERMISSION HELPER ===================== */
+const getPermissionsByRole = (role) => {
+  switch (role) {
+
+    case "viewer":
+      return {
+        canPlay: false,
+        canPurchase: false,
+        canDownloadPDF: false,
+        canJoinClub: false,
+        canCreateClub: false,
+        canModerateClub: false,
+      };
+
+    case "registrant":
+      return {
+        canPlay: true,
+        canPurchase: true,
+        canDownloadPDF: true,
+        canJoinClub: true,
+        canCreateClub: false,
+        canModerateClub: false,
+      };
+
+    case "member":
+      return {
+        canPlay: true,
+        canPurchase: true,
+        canDownloadPDF: true,
+        canJoinClub: true,
+        canCreateClub: false,
+        canModerateClub: false,
+      };
+
+    case "gm":
+      return {
+        canPlay: true,
+        canPurchase: true,
+        canDownloadPDF: true,
+        canJoinClub: true,
+        canCreateClub: true,
+        canModerateClub: true,
+      };
+
+    default:
+      return {};
+  }
+};
+
+/* ===================== SCHEMA ===================== */
 const UserSchema = new mongoose.Schema(
   {
     // BASIC USER INFO
@@ -9,7 +59,7 @@ const UserSchema = new mongoose.Schema(
     username: {
       type: String,
       unique: true,
-      sparse: true, // allows null for existing users
+      sparse: true,
     },
 
     email: {
@@ -20,6 +70,12 @@ const UserSchema = new mongoose.Schema(
     },
 
     password: { type: String, required: true },
+
+    // PROFILE IMAGE
+    avatar: {
+      type: String,
+      default: "https://cdn-icons-png.flaticon.com/512/149/149071.png",
+    },
 
     // PROFILE DETAILS
     profile: {
@@ -33,8 +89,18 @@ const UserSchema = new mongoose.Schema(
     // ACCOUNT TYPE
     accountType: {
       type: String,
-      enum: ["registrant", "member", "gm"],
-      default: "registrant",
+      enum: ["viewer", "registrant", "member", "gm"],
+      default: "viewer",
+    },
+
+    // PERMISSIONS (auto-managed)
+    permissions: {
+      canPlay: { type: Boolean, default: false },
+      canPurchase: { type: Boolean, default: false },
+      canDownloadPDF: { type: Boolean, default: false },
+      canJoinClub: { type: Boolean, default: false },
+      canCreateClub: { type: Boolean, default: false },
+      canModerateClub: { type: Boolean, default: false },
     },
 
     // MEMBERSHIP STATUS
@@ -60,6 +126,21 @@ const UserSchema = new mongoose.Schema(
       default: false,
     },
 
+    // GAME STATS (for profile screen)
+    stats: {
+      score: { type: Number, default: 0 },
+      quests: { type: Number, default: 0 },
+      badges: { type: Number, default: 0 },
+    },
+
+    // ACHIEVEMENTS
+    achievements: [
+      {
+        name: String,
+        unlockedAt: Date,
+      },
+    ],
+
     // ADVENTURE PROGRESS
     completedAdventures: [
       {
@@ -78,34 +159,28 @@ const UserSchema = new mongoose.Schema(
       default: 1,
     },
 
-    // 🔐 EMAIL VERIFICATION
+    // EMAIL VERIFICATION
     emailVerified: {
       type: Boolean,
       default: false,
     },
 
-    emailOtp: {
-      type: String,
-      default: null,
-    },
+    emailOtp: String,
+    emailOtpExpiry: Date,
 
-    emailOtpExpiry: {
-      type: Date,
-      default: null,
-    },
-
-    // 🔐 PASSWORD RESET
-    resetOtp: {
-      type: String,
-      default: null,
-    },
-
-    resetOtpExpiry: {
-      type: Date,
-      default: null,
-    },
+    // PASSWORD RESET
+    resetOtp: String,
+    resetOtpExpiry: Date,
   },
   { timestamps: true }
 );
+
+/* ===================== AUTO ASSIGN PERMISSIONS ===================== */
+UserSchema.pre("save", function (next) {
+  if (this.isModified("accountType")) {
+    this.permissions = getPermissionsByRole(this.accountType);
+  }
+  next();
+});
 
 module.exports = mongoose.model("User", UserSchema);

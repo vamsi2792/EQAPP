@@ -1,20 +1,27 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+
 const User = require("../models/User");
 const authMiddleware = require("../middleware/auth.middleware");
 const sendEmail = require("../utils/email");
 
 const router = express.Router();
 
+/* ===================== HELPERS ===================== */
 const generateOtp = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
 /* ===================== SIGNUP ===================== */
 router.post("/signup", async (req, res) => {
   try {
-    const { firstName, lastName, email, password, profile, clubCode } =
-      req.body;
+    const { firstName, lastName, email, password, profile, clubCode } = req.body;
+
+    if (!firstName || !lastName || !email || !password) {
+      return res.status(400).json({
+        message: "All required fields must be filled",
+      });
+    }
 
     const existingUser = await User.findOne({ email });
 
@@ -38,7 +45,9 @@ router.post("/signup", async (req, res) => {
       clubCode: clubCode || null,
       emailOtp: otp,
       emailOtpExpiry: Date.now() + 10 * 60 * 1000,
-      accountType: "registrant",
+
+      // 🔥 IMPORTANT
+      accountType: "registrant", // permissions auto-handled in schema
     });
 
     await sendEmail(
@@ -50,6 +59,7 @@ router.post("/signup", async (req, res) => {
     res.status(201).json({
       message: "Account created. Please verify your email.",
     });
+
   } catch (error) {
     console.error("Signup error:", error.message);
     res.status(500).json({
@@ -84,6 +94,7 @@ router.post("/verify-email", async (req, res) => {
     res.json({
       message: "Email verified successfully",
     });
+
   } catch (err) {
     res.status(500).json({
       message: "Verification failed",
@@ -98,10 +109,11 @@ router.post("/resend-otp", async (req, res) => {
 
     const user = await User.findOne({ email });
 
-    if (!user)
+    if (!user) {
       return res.status(404).json({
         message: "User not found",
       });
+    }
 
     const otp = generateOtp();
 
@@ -119,6 +131,7 @@ router.post("/resend-otp", async (req, res) => {
     res.json({
       message: "OTP resent successfully",
     });
+
   } catch (err) {
     res.status(500).json({
       message: "Failed to resend OTP",
@@ -131,29 +144,33 @@ router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password)
+    if (!email || !password) {
       return res.status(400).json({
         message: "Email and password required",
       });
+    }
 
     const user = await User.findOne({ email });
 
-    if (!user)
+    if (!user) {
       return res.status(401).json({
         message: "Invalid email or password",
       });
+    }
 
-    if (!user.emailVerified)
+    if (!user.emailVerified) {
       return res.status(403).json({
         message: "Please verify your email before logging in",
       });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
-    if (!isMatch)
+    if (!isMatch) {
       return res.status(401).json({
         message: "Invalid email or password",
       });
+    }
 
     const token = jwt.sign(
       { userId: user._id },
@@ -173,8 +190,10 @@ router.post("/login", async (req, res) => {
         accountType: user.accountType,
         membershipActive: user.membershipActive,
         clubCode: user.clubCode,
+        permissions: user.permissions, // 🔥 IMPORTANT FOR FRONTEND
       },
     });
+
   } catch (error) {
     res.status(500).json({
       message: "Server error during login",
@@ -184,57 +203,71 @@ router.post("/login", async (req, res) => {
 
 /* ===================== FORGOT PASSWORD ===================== */
 router.post("/forgot-password", async (req, res) => {
-  const { email } = req.body;
+  try {
+    const { email } = req.body;
 
-  const user = await User.findOne({ email });
+    const user = await User.findOne({ email });
 
-  if (!user)
-    return res.status(404).json({
-      message: "User not found",
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const otp = generateOtp();
+
+    user.resetOtp = otp;
+    user.resetOtpExpiry = Date.now() + 10 * 60 * 1000;
+
+    await user.save();
+
+    await sendEmail(
+      email,
+      "EarthQuest Password Reset OTP",
+      `Your OTP is ${otp}`
+    );
+
+    res.json({
+      message: "Reset OTP sent to email",
     });
 
-  const otp = generateOtp();
-
-  user.resetOtp = otp;
-  user.resetOtpExpiry = Date.now() + 10 * 60 * 1000;
-
-  await user.save();
-
-  await sendEmail(
-    email,
-    "EarthQuest Password Reset OTP",
-    `Your OTP is ${otp}`
-  );
-
-  res.json({
-    message: "Reset OTP sent to email",
-  });
+  } catch (err) {
+    res.status(500).json({
+      message: "Failed to send reset OTP",
+    });
+  }
 });
 
 /* ===================== RESET PASSWORD ===================== */
 router.post("/reset-password", async (req, res) => {
-  const { email, otp, newPassword } = req.body;
+  try {
+    const { email, otp, newPassword } = req.body;
 
-  const user = await User.findOne({ email });
+    const user = await User.findOne({ email });
 
-  if (!user || user.resetOtp !== otp || user.resetOtpExpiry < Date.now()) {
-    return res.status(400).json({
-      message: "Invalid or expired OTP",
+    if (!user || user.resetOtp !== otp || user.resetOtpExpiry < Date.now()) {
+      return res.status(400).json({
+        message: "Invalid or expired OTP",
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+
+    user.password = await bcrypt.hash(newPassword, salt);
+    user.resetOtp = null;
+    user.resetOtpExpiry = null;
+
+    await user.save();
+
+    res.json({
+      message: "Password reset successful",
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      message: "Password reset failed",
     });
   }
-
-  const salt = await bcrypt.genSalt(10);
-
-  user.password = await bcrypt.hash(newPassword, salt);
-
-  user.resetOtp = null;
-  user.resetOtpExpiry = null;
-
-  await user.save();
-
-  res.json({
-    message: "Password reset successful",
-  });
 });
 
 /* ===================== SET USERNAME ===================== */
@@ -244,10 +277,11 @@ router.post("/set-username", authMiddleware, async (req, res) => {
 
     const existing = await User.findOne({ username });
 
-    if (existing)
+    if (existing) {
       return res.status(400).json({
         message: "Username already taken",
       });
+    }
 
     const user = await User.findByIdAndUpdate(
       req.user.userId,
@@ -259,6 +293,7 @@ router.post("/set-username", authMiddleware, async (req, res) => {
       message: "Username set successfully",
       username: user.username,
     });
+
   } catch (err) {
     res.status(500).json({
       message: "Failed to set username",
@@ -278,12 +313,14 @@ router.post("/upgrade-member", authMiddleware, async (req, res) => {
       user.username = user.username + "M";
     }
 
-    await user.save();
+    await user.save(); // permissions auto-updated
 
     res.json({
       message: "Membership activated",
       accountType: user.accountType,
+      permissions: user.permissions,
     });
+
   } catch (err) {
     res.status(500).json({
       message: "Membership upgrade failed",
@@ -308,12 +345,14 @@ router.post("/upgrade-gm", authMiddleware, async (req, res) => {
       user.username = user.username + "G";
     }
 
-    await user.save();
+    await user.save(); // permissions auto-updated
 
     res.json({
       message: "User upgraded to GM",
       accountType: user.accountType,
+      permissions: user.permissions,
     });
+
   } catch (err) {
     res.status(500).json({
       message: "GM upgrade failed",
@@ -327,6 +366,7 @@ router.get("/me", authMiddleware, async (req, res) => {
     const user = await User.findById(req.user.userId).select("-password");
 
     res.json(user);
+
   } catch (err) {
     res.status(500).json({
       message: "Failed to fetch user",

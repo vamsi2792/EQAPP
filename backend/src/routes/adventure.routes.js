@@ -1,139 +1,174 @@
 const express = require("express");
 const router = express.Router();
+
 const Adventure = require("../models/Adventure");
+const AdventureAccess = require("../models/AdventureAccess");
+const authMiddleware = require("../middleware/auth.middleware");
+const permissionMiddleware = require("../middleware/permission.middleware");
+const generateCode = require("../utils/generateCode");
 
+/* ===================== PURCHASE ADVENTURE ===================== */
+router.post(
+  "/purchase",
+  authMiddleware,
+  permissionMiddleware("canPurchase"),
+  async (req, res) => {
+    try {
+      const { adventureId } = req.body;
+      const user = req.currentUser;
 
-/* ================= CREATE ADVENTURE (GM) ================= */
+      if (!adventureId) {
+        return res.status(400).json({ message: "Adventure ID required" });
+      }
 
-router.post("/create", async (req, res) => {
+      const adventure = await Adventure.findById(adventureId);
+
+      if (!adventure) {
+        return res.status(404).json({ message: "Adventure not found" });
+      }
+
+      // 🔥 Prevent duplicate purchase
+      const existing = await AdventureAccess.findOne({
+        adventure: adventureId,
+        owner: user._id,
+      });
+
+      if (existing) {
+        return res.json({
+          message: "Already purchased",
+          accessCode: existing.accessCode,
+        });
+      }
+
+      const code = generateCode();
+
+      const access = await AdventureAccess.create({
+        adventure: adventure._id,
+        owner: user._id,
+        accessCode: code,
+        players: [user._id],
+      });
+
+      res.json({
+        message: "Adventure purchased successfully",
+        accessCode: code,
+        adventure,
+      });
+
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Purchase failed" });
+    }
+  }
+);
+
+/* ===================== ENTER ADVENTURE CODE ===================== */
+router.post("/enter-code", authMiddleware, async (req, res) => {
   try {
-    const {
-      title,
-      description,
-      latitude,
-      longitude,
-      images,
-      xpReward,
-      difficulty,
-      club,
-      createdBy,
-    } = req.body;
+    const { code } = req.body;
+    const user = req.user.userId;
 
-    const adventure = new Adventure({
-      title,
-      description,
-      images,
-      location: {
-        latitude,
-        longitude,
-      },
-      xpReward,
-      difficulty,
-      club,
-      createdBy,
+    if (!code) {
+      return res.status(400).json({ message: "Code is required" });
+    }
+
+    const access = await AdventureAccess.findOne({
+      accessCode: code,
       isActive: true,
-    });
+    }).populate("adventure");
 
-    await adventure.save();
+    if (!access) {
+      return res.status(404).json({ message: "Invalid code" });
+    }
+
+    if (!access.players.includes(user)) {
+      access.players.push(user);
+      await access.save();
+    }
 
     res.json({
-      message: "Adventure created successfully",
-      adventure,
+      message: "Access granted",
+      adventure: access.adventure,
     });
 
   } catch (err) {
-
-    res.status(500).json({
-      message: "Failed to create adventure",
-    });
-
+    res.status(500).json({ message: "Failed to join adventure" });
   }
 });
 
-
-/* ================= GET ALL ADVENTURES ================= */
-
-router.get("/", async (req, res) => {
+/* ===================== GET MY ADVENTURES ===================== */
+router.get("/my-adventures", authMiddleware, async (req, res) => {
   try {
+    const userId = req.user.userId;
 
-    const adventures = await Adventure.find();
+    const accesses = await AdventureAccess.find({
+      players: userId,
+    }).populate("adventure");
+
+    const adventures = accesses.map((a) => ({
+      accessCode: a.accessCode,
+      adventure: a.adventure,
+    }));
 
     res.json(adventures);
 
   } catch (err) {
-
-    res.status(500).json({
-      message: "Failed to fetch adventures",
-    });
-
+    res.status(500).json({ message: "Failed to fetch adventures" });
   }
 });
 
-
-/* ================= GET SINGLE ADVENTURE ================= */
-
-router.get("/:id", async (req, res) => {
+/* ===================== GET SINGLE ADVENTURE ===================== */
+router.get("/:id", authMiddleware, async (req, res) => {
   try {
+    const adventureId = req.params.id;
+    const userId = req.user.userId;
 
-    const adventure = await Adventure.findById(req.params.id);
+    const access = await AdventureAccess.findOne({
+      adventure: adventureId,
+      players: userId,
+    });
 
-    if (!adventure) {
-      return res.status(404).json({
-        message: "Adventure not found",
+    if (!access) {
+      return res.status(403).json({
+        message: "You do not have access to this adventure",
       });
     }
+
+    const adventure = await Adventure.findById(adventureId);
 
     res.json(adventure);
 
   } catch (err) {
-
-    res.status(500).json({
-      message: "Failed to fetch adventure",
-    });
-
+    res.status(500).json({ message: "Failed to fetch adventure" });
   }
 });
 
-
-/* ================= MAP GEOJSON FOR ARCGIS ================= */
-/* This route sends adventures as GeoJSON so ArcGIS can display them as pins */
-
-router.get("/map", async (req, res) => {
+/* ===================== DEACTIVATE CODE ===================== */
+router.post("/deactivate", authMiddleware, async (req, res) => {
   try {
+    const { accessCode } = req.body;
+    const userId = req.user.userId;
 
-    const adventures = await Adventure.find({ isActive: true });
+    const access = await AdventureAccess.findOne({ accessCode });
 
-    const geojson = adventures.map((adv) => ({
-      type: "Feature",
-      geometry: {
-        type: "Point",
-        coordinates: [
-          adv.location.longitude,
-          adv.location.latitude,
-        ],
-      },
-      properties: {
-        id: adv._id,
-        title: adv.title,
-        description: adv.description,
-        images: adv.images,
-        xpReward: adv.xpReward,
-      },
-    }));
+    if (!access) {
+      return res.status(404).json({ message: "Code not found" });
+    }
 
-    res.json({
-      type: "FeatureCollection",
-      features: geojson,
-    });
+    if (access.owner.toString() !== userId) {
+      return res.status(403).json({
+        message: "Not authorized",
+      });
+    }
+
+    access.isActive = false;
+    await access.save();
+
+    res.json({ message: "Adventure code deactivated" });
 
   } catch (err) {
-
-    res.status(500).json({
-      message: "Failed to fetch adventures",
-    });
-
+    res.status(500).json({ message: "Deactivate failed" });
   }
 });
-
 
 module.exports = router;
