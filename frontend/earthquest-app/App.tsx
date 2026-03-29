@@ -19,6 +19,7 @@ import HowToPlayEarthQuest from "./screens/HowToPlayEarthQuest";
 /* 🔥 NEW SCREENS */
 import AdventureSelectScreen from "./screens/AdventureSelectScreen";
 import MissionBriefScreen from "./screens/MissionBriefScreen";
+import BecomeAMemberScreen from "./screens/BecomeAMemberScreen"; // ✅ Added Import
 
 const Stack = createNativeStackNavigator();
 
@@ -51,8 +52,8 @@ export default function App() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center" }}>
-        <ActivityIndicator size="large" />
+      <View style={{ flex: 1, justifyContent: "center", backgroundColor: "#0E1A14" }}>
+        <ActivityIndicator size="large" color="#74B08A" />
       </View>
     );
   }
@@ -99,6 +100,12 @@ export default function App() {
               <Stack.Screen
                 name="MyProfileScreen"
                 component={MyProfileScreen}
+              />
+
+              {/* ✅ ADDED: Become a Member Screen */}
+              <Stack.Screen 
+                name="BecomeMember" 
+                component={BecomeAMemberScreen} 
               />
             </>
           )}
