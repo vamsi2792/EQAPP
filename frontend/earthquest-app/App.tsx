@@ -16,6 +16,10 @@ import MapScreen from "./screens/MapScreen";
 import AboutEarthQuest from "./screens/AboutEarthQuest";
 import HowToPlayEarthQuest from "./screens/HowToPlayEarthQuest";
 
+/* 🔥 NEW SCREENS */
+import AdventureSelectScreen from "./screens/AdventureSelectScreen";
+import MissionBriefScreen from "./screens/MissionBriefScreen";
+
 const Stack = createNativeStackNavigator();
 
 export const AuthContext = createContext<any>(null);
@@ -57,6 +61,8 @@ export default function App() {
     <AuthContext.Provider value={{ login, logout }}>
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
+          
+          {/* 🔐 AUTH FLOW */}
           {!isAuthenticated ? (
             <>
               <Stack.Screen name="Opening" component={OpeningScreen} />
@@ -74,8 +80,22 @@ export default function App() {
             </>
           ) : (
             <>
+              {/* 🏠 MAIN GAME FLOW */}
               <Stack.Screen name="Landing" component={LandingScreen} />
+              
+              {/* 🔥 NEW FLOW */}
+              <Stack.Screen
+                name="AdventureSelect"
+                component={AdventureSelectScreen}
+              />
+
               <Stack.Screen name="Map" component={MapScreen} />
+
+              <Stack.Screen
+                name="MissionBrief"
+                component={MissionBriefScreen}
+              />
+
               <Stack.Screen
                 name="MyProfileScreen"
                 component={MyProfileScreen}
@@ -83,7 +103,7 @@ export default function App() {
             </>
           )}
 
-          {/* Accessible before AND after login */}
+          {/* 🌍 GLOBAL SCREENS (accessible anytime) */}
           <Stack.Screen name="AboutEarthQuest" component={AboutEarthQuest} />
           <Stack.Screen
             name="HowToPlayEarthQuest"

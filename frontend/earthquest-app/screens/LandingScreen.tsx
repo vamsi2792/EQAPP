@@ -55,10 +55,11 @@ export default function LandingScreen({ navigation }: any) {
           },
         ]}
       >
-        {/* 🌍 Centered Title */}
+        {/* 🌍 Title */}
         <Text style={styles.title}>EarthQuest</Text>
         <Text style={styles.subtitle}>The Game</Text>
 
+        {/* 📚 Menu */}
         <View style={styles.menuContainer}>
           <MenuItem
             text="About EarthQuest"
@@ -69,23 +70,24 @@ export default function LandingScreen({ navigation }: any) {
             text="How to Play EarthQuest"
             onPress={() => navigation.navigate("HowToPlayEarthQuest")}
           />
+
           <MenuItem text="Become a Member" />
           <MenuItem text="EarthQuest Storefront" />
         </View>
 
-        {/* 🔮 Play Button */}
+        {/* 🔮 Play Button (UPDATED) */}
         <Pressable
           style={({ pressed }) => [
             styles.playButton,
             pressed && styles.playPressed,
           ]}
-          onPress={() => navigation.navigate("Map")}
+          onPress={() => navigation.navigate("AdventureSelect")}
         >
           <Text style={styles.playText}>Play EarthQuest</Text>
         </Pressable>
       </Animated.View>
 
-      {/* Modal for Hamburger Menu */}
+      {/* 📂 Hamburger Menu Modal */}
       <Modal
         visible={menuVisible}
         transparent={true}
@@ -121,6 +123,7 @@ export default function LandingScreen({ navigation }: any) {
   );
 }
 
+/* 🔹 Reusable Menu Button */
 function MenuItem({ text, onPress }: { text: string; onPress?: () => void }) {
   return (
     <Pressable
@@ -132,6 +135,7 @@ function MenuItem({ text, onPress }: { text: string; onPress?: () => void }) {
   );
 }
 
+/* 🎨 Styles */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
