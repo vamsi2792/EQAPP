@@ -12,6 +12,13 @@ import MyProfileScreen from "./screens/MyProfileScreen";
 import VerifyEmailScreen from "./screens/Auth/VerifyEmailScreen";
 import ForgotPasswordScreen from "./screens/Auth/ForgotPasswordScreen";
 import ResetPasswordScreen from "./screens/Auth/ResetPasswordScreen";
+import MapScreen from "./screens/MapScreen";
+import AboutEarthQuest from "./screens/AboutEarthQuest";
+import HowToPlayEarthQuest from "./screens/HowToPlayEarthQuest";
+
+/* 🔥 NEW SCREENS */
+import AdventureSelectScreen from "./screens/AdventureSelectScreen";
+import MissionBriefScreen from "./screens/MissionBriefScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -54,21 +61,54 @@ export default function App() {
     <AuthContext.Provider value={{ login, logout }}>
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
+          
+          {/* 🔐 AUTH FLOW */}
           {!isAuthenticated ? (
             <>
               <Stack.Screen name="Opening" component={OpeningScreen} />
               <Stack.Screen name="Login" component={LoginScreen} />
               <Stack.Screen name="Signup" component={SignupScreen} />
               <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
-              <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-              <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+              <Stack.Screen
+                name="ForgotPassword"
+                component={ForgotPasswordScreen}
+              />
+              <Stack.Screen
+                name="ResetPassword"
+                component={ResetPasswordScreen}
+              />
             </>
           ) : (
             <>
+              {/* 🏠 MAIN GAME FLOW */}
               <Stack.Screen name="Landing" component={LandingScreen} />
-              <Stack.Screen name="MyProfileScreen" component={MyProfileScreen} />
+              
+              {/* 🔥 NEW FLOW */}
+              <Stack.Screen
+                name="AdventureSelect"
+                component={AdventureSelectScreen}
+              />
+
+              <Stack.Screen name="Map" component={MapScreen} />
+
+              <Stack.Screen
+                name="MissionBrief"
+                component={MissionBriefScreen}
+              />
+
+              <Stack.Screen
+                name="MyProfileScreen"
+                component={MyProfileScreen}
+              />
             </>
           )}
+
+          {/* 🌍 GLOBAL SCREENS (accessible anytime) */}
+          <Stack.Screen name="AboutEarthQuest" component={AboutEarthQuest} />
+          <Stack.Screen
+            name="HowToPlayEarthQuest"
+            component={HowToPlayEarthQuest}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthContext.Provider>

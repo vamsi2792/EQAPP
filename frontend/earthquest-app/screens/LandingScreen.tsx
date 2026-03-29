@@ -1,4 +1,12 @@
-import { View, Text, StyleSheet, Pressable, Animated, Modal, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  Animated,
+  Modal,
+  TouchableOpacity,
+} from "react-native";
 import { useEffect, useRef, useContext, useState } from "react";
 import { AuthContext } from "../App";
 
@@ -30,7 +38,6 @@ export default function LandingScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      
       {/* ☰ Hamburger Icon */}
       <TouchableOpacity
         style={styles.hamburger}
@@ -48,30 +55,39 @@ export default function LandingScreen({ navigation }: any) {
           },
         ]}
       >
-        {/* 🌍 Centered Title */}
+        {/* 🌍 Title */}
         <Text style={styles.title}>EarthQuest</Text>
         <Text style={styles.subtitle}>The Game</Text>
 
+        {/* 📚 Menu */}
         <View style={styles.menuContainer}>
-          <MenuItem text="About EarthQuest" />
-          <MenuItem text="How to Play EarthQuest" />
+          <MenuItem
+            text="About EarthQuest"
+            onPress={() => navigation.navigate("AboutEarthQuest")}
+          />
+
+          <MenuItem
+            text="How to Play EarthQuest"
+            onPress={() => navigation.navigate("HowToPlayEarthQuest")}
+          />
+
           <MenuItem text="Become a Member" />
           <MenuItem text="EarthQuest Storefront" />
         </View>
 
-        {/* 🔮 Play Button */}
+        {/* 🔮 Play Button (UPDATED) */}
         <Pressable
           style={({ pressed }) => [
             styles.playButton,
             pressed && styles.playPressed,
           ]}
-          onPress={() => navigation.navigate("Adventure")}
+          onPress={() => navigation.navigate("AdventureSelect")}
         >
           <Text style={styles.playText}>Play EarthQuest</Text>
         </Pressable>
       </Animated.View>
 
-      {/* Modal for Hamburger Menu */}
+      {/* 📂 Hamburger Menu Modal */}
       <Modal
         visible={menuVisible}
         transparent={true}
@@ -84,8 +100,6 @@ export default function LandingScreen({ navigation }: any) {
           onPress={() => setMenuVisible(false)}
         >
           <View style={styles.modalContent}>
-            
-
             <TouchableOpacity
               style={styles.modalButton}
               onPress={() => {
@@ -95,8 +109,6 @@ export default function LandingScreen({ navigation }: any) {
             >
               <Text style={styles.modalButtonText}>My Profile</Text>
             </TouchableOpacity>
-
-
 
             <TouchableOpacity
               style={[styles.modalButton, styles.logoutModalButton]}
@@ -111,26 +123,19 @@ export default function LandingScreen({ navigation }: any) {
   );
 }
 
-function MenuItem({
-  text,
-  onPress,
-}: {
-  text: string;
-  onPress?: () => void;
-}) {
+/* 🔹 Reusable Menu Button */
+function MenuItem({ text, onPress }: { text: string; onPress?: () => void }) {
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        pressed && styles.buttonPressed,
-      ]}
+      style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
     >
       <Text style={styles.buttonText}>{text}</Text>
     </Pressable>
   );
 }
 
+/* 🎨 Styles */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
