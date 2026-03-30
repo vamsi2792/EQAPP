@@ -158,12 +158,20 @@ export default function MyProfileScreen({ navigation }: any) {
       <Modal visible={menuOpen} transparent animationType="fade">
         <Pressable style={styles.modalOverlay} onPress={() => setMenuOpen(false)}>
           <View style={styles.dropdown}>
+            
             <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuOpen(false); navigation.navigate("Landing"); }}>
               <Text style={styles.menuText}>Home</Text>
             </TouchableOpacity>
+
+            {/* 🔥 NEW CLUBS MENU OPTION */}
+            <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuOpen(false); navigation.navigate("ClubModal"); }}>
+              <Text style={styles.menuText}>Clubs</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={handleLogout}>
               <Text style={styles.logoutText}>Logout</Text>
             </TouchableOpacity>
+
           </View>
         </Pressable>
       </Modal>
