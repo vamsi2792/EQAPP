@@ -6,6 +6,7 @@ import {
   Animated,
   Modal,
   TouchableOpacity,
+  Linking, 
 } from "react-native";
 import { useEffect, useRef, useContext, useState } from "react";
 import { AuthContext } from "../App";
@@ -34,6 +35,15 @@ export default function LandingScreen({ navigation }: any) {
   const handleLogout = () => {
     setMenuVisible(false);
     logout();
+  };
+
+  const handleExternalLink = async (url: string) => {
+    const supported = await Linking.canOpenURL(url);
+    if (supported) {
+      await Linking.openURL(url);
+    } else {
+      console.log(`Don't know how to open this URL: ${url}`);
+    }
   };
 
   return (
@@ -71,11 +81,23 @@ export default function LandingScreen({ navigation }: any) {
             onPress={() => navigation.navigate("HowToPlayEarthQuest")}
           />
 
-          <MenuItem text="Become a Member" />
-          <MenuItem text="EarthQuest Storefront" />
+          <MenuItem 
+            text="Become a Member" 
+            onPress={() => navigation.navigate("BecomeMember")}
+          />
+          
+          <MenuItem 
+            text="EarthQuest Storefront" 
+            onPress={() => navigation.navigate("StoreFront")}
+          />
+
+          <MenuItem 
+            text="Visit Official Website ↗" 
+            onPress={() => handleExternalLink('https://earthquest.com')} 
+          />
         </View>
 
-        {/* 🔮 Play Button (UPDATED) */}
+        {/* 🔮 Play Button */}
         <Pressable
           style={({ pressed }) => [
             styles.playButton,
@@ -86,6 +108,14 @@ export default function LandingScreen({ navigation }: any) {
           <Text style={styles.playText}>Play EarthQuest</Text>
         </Pressable>
       </Animated.View>
+
+      {/* 🛡️ Floating Vanguardian Button */}
+      <TouchableOpacity 
+        style={styles.floatingV}
+        onPress={() => navigation.navigate("BecomeMember")}
+      >
+        <Text style={styles.vText}>V</Text>
+      </TouchableOpacity>
 
       {/* 📂 Hamburger Menu Modal */}
       <Modal
@@ -100,6 +130,7 @@ export default function LandingScreen({ navigation }: any) {
           onPress={() => setMenuVisible(false)}
         >
           <View style={styles.modalContent}>
+            
             <TouchableOpacity
               style={styles.modalButton}
               onPress={() => {
@@ -108,6 +139,17 @@ export default function LandingScreen({ navigation }: any) {
               }}
             >
               <Text style={styles.modalButtonText}>My Profile</Text>
+            </TouchableOpacity>
+
+            {/* Clubs Button */}
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setMenuVisible(false);
+                navigation.navigate("ClubModal"); // Updated to match your filename
+              }}
+            >
+              <Text style={styles.modalButtonText}>Clubs</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -235,6 +277,29 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#E8F5E9",
     letterSpacing: 1.5,
+  },
+
+  floatingV: {
+    position: "absolute",
+    bottom: 40,
+    right: 25,
+    backgroundColor: "#FFD700",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+  },
+
+  vText: {
+    fontSize: 26,
+    fontWeight: "900",
+    color: "#0E1A14",
   },
 
   modalOverlay: {
