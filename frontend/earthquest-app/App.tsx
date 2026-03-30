@@ -19,7 +19,12 @@ import HowToPlayEarthQuest from "./screens/HowToPlayEarthQuest";
 /* 🔥 NEW SCREENS */
 import AdventureSelectScreen from "./screens/AdventureSelectScreen";
 import MissionBriefScreen from "./screens/MissionBriefScreen";
-import BecomeAMemberScreen from "./screens/BecomeAMemberScreen"; // ✅ Added Import
+import BecomeAMemberScreen from "./screens/BecomeAMemberScreen";
+import StorefrontScreen from "./screens/StoreFront";
+
+// 🛡️ ADDED: Import your new Club Screen here
+
+import ClubModal from "./screens/ClubModal";
 
 const Stack = createNativeStackNavigator();
 
@@ -102,10 +107,20 @@ export default function App() {
                 component={MyProfileScreen}
               />
 
-              {/* ✅ ADDED: Become a Member Screen */}
+              {/* 🛡️ ADDED: Club Screen */}
+              <Stack.Screen
+                name="ClubModal"                component={ClubModal}
+              />
+
               <Stack.Screen 
                 name="BecomeMember" 
                 component={BecomeAMemberScreen} 
+              />
+
+              {/* ✅ ADDED: Storefront Screen */}
+              <Stack.Screen 
+                name="StoreFront" 
+                component={StorefrontScreen} 
               />
             </>
           )}
