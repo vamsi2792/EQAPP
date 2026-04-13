@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -17,6 +18,23 @@ export default function MissionBriefScreen({ route, navigation }: any) {
         style={styles.container}
         contentContainerStyle={{ paddingBottom: 40 }}
       >
+        {/* 🖼️ IMAGE CAROUSEL */}
+        {adventure?.images && adventure.images.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.carousel}
+          >
+            {adventure.images.map((img: string, index: number) => (
+              <Image
+                key={index}
+                source={{ uri: img }}
+                style={styles.carouselImage}
+              />
+            ))}
+          </ScrollView>
+        )}
+
         {/* 🧭 HEADER */}
         <Text style={styles.title}>
           {adventure?.title || "EarthQuest"}
@@ -162,11 +180,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
 
+  /* 🖼️ Carousel */
+  carousel: {
+    marginTop: 10,
+    marginBottom: 15,
+  },
+
+  carouselImage: {
+    width: 300,
+    height: 180,
+    marginRight: 12,
+    borderRadius: 14,
+  },
+
   title: {
     fontSize: 26,
     fontWeight: "800",
     color: "#E8F5E9",
-    marginTop: 10, // small spacing below notch
+    marginTop: 5,
   },
 
   subtitle: {

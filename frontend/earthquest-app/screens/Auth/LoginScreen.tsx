@@ -1,13 +1,8 @@
 import { useContext, useState } from "react";
 import { AuthContext } from "../../App";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  Pressable,
-} from "react-native";
+import { View, Text, TextInput, StyleSheet, Pressable } from "react-native";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -31,7 +26,10 @@ export default function LoginScreen({ navigation }: any) {
 
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json","ngrok-skip-browser-warning": "true" },
+        headers: {
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
+        },
         body: JSON.stringify({ email, password }),
       });
 
@@ -43,11 +41,16 @@ export default function LoginScreen({ navigation }: any) {
       }
 
       // 🔐 Use context login
+      // await login(data.token);
+
+      // 🔐 Save token for MapScreen
+      await AsyncStorage.setItem("token", data.token);
+
+      // Optional: still keep context
       await login(data.token);
 
       // Optional
       // await AsyncStorage.setItem("user", JSON.stringify(data.user));
-
     } catch (err) {
       console.error("Login error:", err);
       setError("Something went wrong. Please try again.");

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -7,17 +7,74 @@ import {
   Text,
   Modal,
   Pressable,
+  ScrollView,
+  Image,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function MapScreen({ route, navigation }: any) {
   const [menuVisible, setMenuVisible] = useState(false);
+  const [arcgisToken, setArcgisToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedAdventure, setSelectedAdventure] = useState(null);
 
   const adventure = route.params?.adventure;
 
   const MAP_URL =
     "https://fructuously-predegenerate-florance.ngrok-free.dev/earthquestMap.html";
+
+  // 🔥 Fetch ArcGIS token from backend
+  useEffect(() => {
+    const fetchToken = async () => {
+      try {
+        const userJWT = await AsyncStorage.getItem("token");
+        // const userJWT = await AsyncStorage.getItem("token");
+        console.log("JWT FROM STORAGE:", userJWT);
+
+        if (!userJWT) {
+          console.log("No JWT found");
+          setLoading(false);
+          return;
+        }
+
+        const res = await fetch(
+          // "http://http://192.168.1.32:5000/api/arcgis-token",
+          "https://fructuously-predegenerate-florance.ngrok-free.dev/api/arcgis-token", // 🔴 CHANGE THIS
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${userJWT}`,
+            },
+          },
+        );
+
+        const data = await res.json();
+
+        if (data.token) {
+          setArcgisToken(data.token);
+        } else {
+          console.log("ArcGIS token error:", data);
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchToken();
+  }, []);
+
+  // ⏳ Loading screen
+  if (loading || !arcgisToken) {
+    return (
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color="#74B08A" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -32,6 +89,23 @@ export default function MapScreen({ route, navigation }: any) {
         style={styles.webview}
         javaScriptEnabled
         domStorageEnabled
+        onMessage={(event) => {
+          try {
+            const message = JSON.parse(event.nativeEvent.data);
+            console.log(message.data);
+            if (message.type === "PIN_CLICK") {
+              console.log("Pin clicked:", message.data);
+
+              setSelectedAdventure(message.data);
+            }
+          } catch (err) {
+            console.log("Message parse error:", err);
+          }
+        }}
+        injectedJavaScriptBeforeContentLoaded={`
+    window.ARC_TOKEN = "${arcgisToken}";
+    true;
+  `}
         startInLoadingState
         renderLoading={() => (
           <View style={styles.loader}>
@@ -48,16 +122,54 @@ export default function MapScreen({ route, navigation }: any) {
         <Text style={styles.hamburgerText}>☰</Text>
       </TouchableOpacity>
 
+      {selectedAdventure && (
+        <View style={styles.overlayCard}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {selectedAdventure.images?.map((img, index) => (
+              <Image
+                key={index}
+                source={{ uri: img }}
+                style={styles.overlayImage}
+              />
+            ))}
+          </ScrollView>
+
+          <Text style={styles.overlayTitle}>
+            {selectedAdventure.title || "EarthQuest"}
+          </Text>
+
+          <Text style={styles.overlaySubtitle}>
+            EQ1 Adventure Mission Brief
+          </Text>
+
+          <TouchableOpacity
+            style={styles.overlayButton}
+            onPress={() => {
+              navigation.navigate("MissionBrief", {
+                adventure: selectedAdventure,
+              });
+            }}
+          >
+            <Text style={styles.overlayButtonText}>Open Mission</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setSelectedAdventure(null)}
+          >
+            <Text style={styles.closeText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* 📂 Side Menu */}
       <Modal visible={menuVisible} transparent animationType="slide">
         <View style={styles.overlay}>
-          {/* 👈 Click outside to close */}
           <Pressable
             style={styles.backdrop}
             onPress={() => setMenuVisible(false)}
           />
 
-          {/* 📦 Right Side Menu with Safe Area */}
           <SafeAreaView style={styles.menu}>
             <Text style={styles.menuTitle}>
               {adventure?.title || "EarthQuest"}
@@ -118,7 +230,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#0E1A14",
   },
 
-  // 🍔 Hamburger
   hamburger: {
     position: "absolute",
     top: 50,
@@ -135,7 +246,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 
-  // 📂 Overlay
   overlay: {
     flex: 1,
     flexDirection: "row",
@@ -143,12 +253,72 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.4)",
   },
 
-  // 👈 Clickable outside area
   backdrop: {
     flex: 1,
   },
 
-  // 📦 Menu
+  overlayCard: {
+    position: "absolute",
+    bottom: 30,
+    left: 20,
+    right: 20,
+    backgroundColor: "#0E1A14",
+    borderRadius: 16,
+    padding: 15,
+    borderWidth: 1.5,
+    borderColor: "#74B08A",
+  },
+
+  overlayImage: {
+    width: 250,
+    height: 140,
+    marginRight: 10,
+    borderRadius: 10,
+  },
+
+  overlayTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#E8F5E9",
+    marginTop: 10,
+  },
+
+  overlaySubtitle: {
+    fontSize: 14,
+    color: "#8DBFA1",
+    marginBottom: 10,
+  },
+
+  overlayButton: {
+    marginTop: 10,
+    backgroundColor: "#1E5F3A",
+    padding: 12,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+
+  overlayButtonText: {
+    color: "#EAF4EE",
+    fontWeight: "700",
+  },
+
+  closeButton: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    zIndex: 10,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+
+  closeText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+
   menu: {
     width: "75%",
     height: "100%",

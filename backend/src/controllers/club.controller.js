@@ -1,4 +1,4 @@
-const Club = require("../models/club");
+const Club = require("../models/Club");
 const User = require("../models/User");
 const generateCode = require("../utils/generateCode");
 

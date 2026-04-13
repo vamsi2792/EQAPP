@@ -27,6 +27,15 @@
     </style>
 
     <script>
+      // 🔐 Get token injected from React Native
+      const token = window.ARC_TOKEN;
+      console.log("TOKEN IN HTML:", token);
+      // 🚫 Block unauthorized access
+      if (!token) {
+        document.body.innerHTML = "<h2>Unauthorized</h2>";
+        throw new Error("No ArcGIS token provided");
+      }
+
       require([
         "esri/WebScene",
         "esri/views/SceneView",
@@ -34,7 +43,30 @@
         "esri/widgets/Locate",
         "esri/widgets/Compass",
         "esri/widgets/Home",
-      ], function (WebScene, SceneView, Search, Locate, Compass, Home) {
+        "esri/config",
+        "esri/layers/GraphicsLayer",
+        "esri/Graphic",
+      ], function (
+        WebScene,
+        SceneView,
+        Search,
+        Locate,
+        Compass,
+        Home,
+        esriConfig,
+        GraphicsLayer,
+        Graphic,
+      ) {
+        // 🔥 Attach token to ALL ArcGIS requests
+        esriConfig.request.interceptors.push({
+          before: function (params) {
+            params.requestOptions.query = {
+              ...params.requestOptions.query,
+              token: token,
+            };
+          },
+        });
+
         const webscene = new WebScene({
           portalItem: {
             id: "4fda049729b44251b6a9cf49a50a185a",
@@ -50,33 +82,76 @@
           },
         });
 
-        // 🔍 Search widget
-        const searchWidget = new Search({
-          view: view,
+        // 📍 Create graphics layer
+        const graphicsLayer = new GraphicsLayer();
+        view.map.add(graphicsLayer);
+
+        // 📍 Example pin
+        const point = {
+          type: "point",
+          latitude: 42.6867,
+          longitude: -73.8238,
+        };
+
+        const markerSymbol = {
+          type: "point-3d",
+          symbolLayers: [
+            {
+              type: "object",
+              resource: { primitive: "cone" },
+              material: { color: "red" },
+              height: 30,
+            },
+          ],
+        };
+
+        const pointGraphic = new Graphic({
+          geometry: point,
+          symbol: markerSymbol,
+          attributes: {
+            id: "adventure1",
+            title: "EarthQuest Adventure 1",
+            isAdventure: true,
+            images: [
+              "https://4kwallpapers.com/images/wallpapers/marvels-spider-man-pc-games-playstation-4-playstation-5-1280x1280-8652.jpg",
+              "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSLWxF_3dpL8AjzxIAs43Hu_PJcEPlsUMwMFQ&s",
+              "https://c4.wallpaperflare.com/wallpaper/611/838/413/spiderman-hd-4k-superheroes-wallpaper-preview.jpg",
+            ],
+          },
         });
 
-        view.ui.add(searchWidget, "top-right");
+        graphicsLayer.add(pointGraphic);
 
-        // 📍 Locate button
-        const locateWidget = new Locate({
-          view: view,
+        view.on("click", function (event) {
+          view.hitTest(event).then(function (response) {
+            const result = response.results.find(
+              (r) => r.graphic && r.graphic.attributes,
+            );
+
+            if (result) {
+              const attrs = result.graphic.attributes;
+
+              window.ReactNativeWebView.postMessage(
+                JSON.stringify({
+                  type: "PIN_CLICK",
+                  data: attrs,
+                }),
+              );
+            }
+          });
         });
 
-        view.ui.add(locateWidget, "top-left");
+        // 🔍 Search
+        view.ui.add(new Search({ view }), "top-right");
+
+        // 📍 Locate
+        view.ui.add(new Locate({ view }), "top-left");
 
         // 🧭 Compass
-        const compassWidget = new Compass({
-          view: view,
-        });
+        view.ui.add(new Compass({ view }), "top-left");
 
-        view.ui.add(compassWidget, "top-left");
-
-        // 🏠 Home button
-        const homeWidget = new Home({
-          view: view,
-        });
-
-        view.ui.add(homeWidget, "top-left");
+        // 🏠 Home
+        view.ui.add(new Home({ view }), "top-left");
       });
     </script>
   </head>
