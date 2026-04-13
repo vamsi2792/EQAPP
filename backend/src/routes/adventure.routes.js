@@ -7,6 +7,27 @@ const authMiddleware = require("../middleware/auth.middleware");
 const permissionMiddleware = require("../middleware/permission.middleware");
 const generateCode = require("../utils/generateCode");
 
+
+/* ===================== GET MAP ADVENTURES (PUBLIC) ===================== */
+router.get("/map", async (req, res) => {
+  try {
+    const adventures = await Adventure.find({ isPublished: true });
+
+    const formatted = adventures.map((adv) => ({
+      id: adv._id,
+      title: adv.title,
+      latitude: adv.location?.latitude,
+      longitude: adv.location?.longitude,
+      images: adv.images || [],
+    }));
+
+    res.json(formatted);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch map adventures" });
+  }
+});
+
 /* ===================== PURCHASE ADVENTURE ===================== */
 router.post(
   "/purchase",

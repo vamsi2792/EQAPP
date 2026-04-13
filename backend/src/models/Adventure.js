@@ -8,36 +8,31 @@ const AdventureSchema = new mongoose.Schema(
       trim: true,
     },
 
-    description: {
-      type: String,
+    description: String,
+
+    // 🌍 REQUIRED FOR MAP
+    location: {
+      latitude: {
+        type: Number,
+        required: true,
+      },
+      longitude: {
+        type: Number,
+        required: true,
+      },
     },
 
-    // 🌍 Map / Story Data
-    mapData: {
-      type: Object, // can store JSON for map layers, locations, etc.
-      default: {},
-    },
+    images: [String],
 
+    // 🎮 Optional story content
     scenes: [
       {
         title: String,
         description: String,
-        mediaUrl: String, // video/image
+        mediaUrl: String,
       },
     ],
 
-    // 💰 Store info
-    price: {
-      type: Number,
-      default: 0,
-    },
-
-    isFree: {
-      type: Boolean,
-      default: false,
-    },
-
-    // 🧠 Difficulty / category
     difficulty: {
       type: String,
       enum: ["easy", "medium", "hard"],
@@ -47,12 +42,6 @@ const AdventureSchema = new mongoose.Schema(
     category: {
       type: String,
       default: "climate",
-    },
-
-    // 📊 Metadata
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
     },
 
     isPublished: {
