@@ -87,8 +87,20 @@ export default function MapScreen({ route, navigation }: any) {
           },
         }}
         style={styles.webview}
-        javaScriptEnabled
-        domStorageEnabled
+        // ✅ REQUIRED SETTINGS
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
+        originWhitelist={["*"]}
+        mixedContentMode="always"
+        // 🔥 THIS IS THE LINE YOU ASKED ABOUT
+        androidHardwareAccelerationDisabled={false}
+        // 🔥 IMPORTANT FOR 3D
+        allowsInlineMediaPlayback={true}
+        mediaPlaybackRequiresUserAction={false}
+        // 🔧 Stability
+        scrollEnabled={false}
+        overScrollMode="never"
+        
         onMessage={(event) => {
           try {
             const message = JSON.parse(event.nativeEvent.data);
