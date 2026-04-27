@@ -69,7 +69,9 @@
 
         const webscene = new WebScene({
           portalItem: {
-            id: "4fda049729b44251b6a9cf49a50a185a",
+            // id: "4fda049729b44251b6a9cf49a50a185a",
+            // id:"ea9c0e74dd1f45d69ff75a3f36279618",
+            id: "ff34b251dfa44bb7ac5b206d6dadab89",
           },
         });
 
@@ -86,24 +88,29 @@
         const graphicsLayer = new GraphicsLayer();
         view.map.add(graphicsLayer);
 
-        // 📍 Example pin
         const point = {
           type: "point",
-          latitude: 42.6867,
-          longitude: -73.8238,
+          latitude: 42.65,
+          longitude: -73.7467,
+          z: 10, // 🔥 lifts pin above buildings
         };
 
         const markerSymbol = {
-          type: "point-3d",
-          symbolLayers: [
-            {
-              type: "object",
-              resource: { primitive: "cone" },
-              material: { color: "red" },
-              height: 30,
-            },
-          ],
-        };
+  type: "point-3d",
+  symbolLayers: [
+    {
+      type: "icon",
+      resource: {
+        href: "https://res.cloudinary.com/dtcadnjtg/image/upload/v1777244825/5b268d65-8a11-4232-9ea2-b53984f84b51_ayyezx.jpg"
+      },
+      size: 20,
+      outline: {
+        color: "white",
+        size: 1
+      }
+    }
+  ]
+};
 
         const pointGraphic = new Graphic({
           geometry: point,
@@ -113,9 +120,9 @@
             title: "EarthQuest Adventure 1",
             isAdventure: true,
             images: [
-              "https://4kwallpapers.com/images/wallpapers/marvels-spider-man-pc-games-playstation-4-playstation-5-1280x1280-8652.jpg",
-              "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSLWxF_3dpL8AjzxIAs43Hu_PJcEPlsUMwMFQ&s",
-              "https://c4.wallpaperflare.com/wallpaper/611/838/413/spiderman-hd-4k-superheroes-wallpaper-preview.jpg",
+              "https://res.cloudinary.com/dtcadnjtg/image/upload/v1776215908/F_Hover_Motorboats_and_Yacht_1_n41zl4.jpg",
+              "https://res.cloudinary.com/dtcadnjtg/image/upload/v1776216057/F_Hudson_River_2_k7wzey.jpg",
+              "https://res.cloudinary.com/dtcadnjtg/image/upload/v1776216100/F_Hudson_River_7_il3u6a.jpg",
             ],
           },
         });
@@ -125,7 +132,7 @@
         view.on("click", function (event) {
           view.hitTest(event).then(function (response) {
             const result = response.results.find(
-              (r) => r.graphic && r.graphic.attributes,
+              (r) => r.graphic && r.graphic.attributes?.isAdventure,
             );
 
             if (result) {
