@@ -100,7 +100,6 @@ export default function MapScreen({ route, navigation }: any) {
         // 🔧 Stability
         scrollEnabled={false}
         overScrollMode="never"
-        
         onMessage={(event) => {
           try {
             const message = JSON.parse(event.nativeEvent.data);
@@ -147,11 +146,11 @@ export default function MapScreen({ route, navigation }: any) {
           </ScrollView>
 
           <Text style={styles.overlayTitle}>
-            {selectedAdventure.title || "EarthQuest"}
+            {selectedAdventure.code} - {selectedAdventure.title}
           </Text>
 
           <Text style={styles.overlaySubtitle}>
-            EQ1 Adventure Mission Brief
+            {selectedAdventure.locationName}
           </Text>
 
           <TouchableOpacity

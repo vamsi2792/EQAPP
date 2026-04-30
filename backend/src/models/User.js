@@ -176,11 +176,10 @@ const UserSchema = new mongoose.Schema(
 );
 
 /* ===================== AUTO ASSIGN PERMISSIONS ===================== */
-UserSchema.pre("save", function (next) {
+UserSchema.pre("save", async function () {
   if (this.isModified("accountType")) {
     this.permissions = getPermissionsByRole(this.accountType);
   }
-  next();
 });
 
 module.exports = mongoose.model("User", UserSchema);

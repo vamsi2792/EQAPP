@@ -19,30 +19,22 @@
       body,
       #viewDiv {
         margin: 0;
-        padding: 0;
         height: 100%;
-        width: 100%;
         background: black;
       }
     </style>
 
     <script>
-      // 🔐 Get token injected from React Native
       const token = window.ARC_TOKEN;
-      console.log("TOKEN IN HTML:", token);
-      // 🚫 Block unauthorized access
       if (!token) {
         document.body.innerHTML = "<h2>Unauthorized</h2>";
-        throw new Error("No ArcGIS token provided");
+        throw new Error("No token");
       }
 
       require([
         "esri/WebScene",
         "esri/views/SceneView",
         "esri/widgets/Search",
-        "esri/widgets/Locate",
-        "esri/widgets/Compass",
-        "esri/widgets/Home",
         "esri/config",
         "esri/layers/GraphicsLayer",
         "esri/Graphic",
@@ -50,14 +42,10 @@
         WebScene,
         SceneView,
         Search,
-        Locate,
-        Compass,
-        Home,
         esriConfig,
         GraphicsLayer,
         Graphic,
       ) {
-        // 🔥 Attach token to ALL ArcGIS requests
         esriConfig.request.interceptors.push({
           before: function (params) {
             params.requestOptions.query = {
@@ -67,98 +55,221 @@
           },
         });
 
-        const webscene = new WebScene({
-          portalItem: {
-            // id: "4fda049729b44251b6a9cf49a50a185a",
-            // id:"ea9c0e74dd1f45d69ff75a3f36279618",
-            id: "ff34b251dfa44bb7ac5b206d6dadab89",
-          },
-        });
-
         const view = new SceneView({
           container: "viewDiv",
-          map: webscene,
-          qualityProfile: "high",
+          map: new WebScene({
+            portalItem: { id: "ff34b251dfa44bb7ac5b206d6dadab89" },
+          }),
           padding: {
-            top: 60,
+            top: 80,
           },
         });
 
-        // 📍 Create graphics layer
         const graphicsLayer = new GraphicsLayer();
         view.map.add(graphicsLayer);
 
-        const point = {
-          type: "point",
-          latitude: 42.65,
-          longitude: -73.7467,
-          z: 10, // 🔥 lifts pin above buildings
-        };
+        // 🔥 ALL SCENARIOS
+        const scenarios = [
+          // ===== Scenario F (MULTIPLE LOCATIONS) =====
+          {
+            lat: 42.752242,
+            lon: -73.697130,
+            data: {
+              id: "EQ1-F-1",
+              code: "F",
+              title: "Hudson Aquaculture - Troy Dam",
+              locationName: "Troy Dam",
+              description:
+                "Study aquaculture systems and river flow near Troy Dam.",
+              images: [
+                "https://res.cloudinary.com/dtcadnjtg/image/upload/v1777512311/F_Troy_Federal_Dam_1_ytm3rr.jpg",
+                "https://res.cloudinary.com/dtcadnjtg/image/upload/v1777512311/F_Hover_Motorboats_and_Yacht_1_1_q8flaa.jpg",
+                "https://res.cloudinary.com/dtcadnjtg/image/upload/v1777512310/F_Hover_Motorboats_and_Yacht_3_iufez1.jpg",
+                "https://res.cloudinary.com/dtcadnjtg/image/upload/v1777512310/F_Hudson_River_1_bbbryp.jpg",
+                "https://res.cloudinary.com/dtcadnjtg/image/upload/v1777512310/F_Arbor_Hill_River._aquaculture_3_zinfla.jpg",
+              ],
+              isAdventure: true,
+            },
+          },
+          {
+            lat: 42.647310,
+            lon: -73.748964,
+            data: {
+              id: "EQ1-C5",
+              code: "C5",
+              title: "South Albany Radix Resilience Center",
+              locationName: "Resilience Center",
+              description:
+                "South Albany Radix Resilience Center.",
+              images: [
+                "https://res.cloudinary.com/dtcadnjtg/image/upload/v1777511980/C5_Subterranean_Creeks_w_animals_5_gwzwmc.jpg",
+                "https://res.cloudinary.com/dtcadnjtg/image/upload/v1777511980/C5_Subterranean_Creeks_w_animals_2_muopnu.jpg",
+                "https://res.cloudinary.com/dtcadnjtg/image/upload/v1777511980/C5_Subterranean_Creeks_w_animals_1_wx4znm.jpg",
+                "https://res.cloudinary.com/dtcadnjtg/image/upload/v1777511979/C5_Subterranean_Creeks_w_animals_Sheep_luf2zs.jpg",
+                "https://res.cloudinary.com/dtcadnjtg/image/upload/v1777511979/C5_Subterranean_Creeks_w_animals_Dogs_sur0je.jpg",
+              ],
+              isAdventure: true,
+            },
+          },
+
+          // ===== Scenario E1 =====
+          {
+            lat: 42.731108,
+            lon: -73.699864,
+            data: {
+              id: "EQ1-E1",
+              code: "E1",
+              title: "Watervliet City Hall",
+              locationName: "Watervliet City Hall",
+              description: "Handle emergency docking near city hall.",
+              images: [
+                "https://res.cloudinary.com/dtcadnjtg/image/upload/v1777512499/E1_Building_and_flooded_streets_1_gprw2n.jpg",
+                "https://res.cloudinary.com/dtcadnjtg/image/upload/v1777512499/E1_Building_and_flooded_streets_2_qk7ewv.jpg",
+                "https://res.cloudinary.com/dtcadnjtg/image/upload/v1777512499/E1_Building_and_flooded_streets_3_wcenqe.jpg",
+                "https://res.cloudinary.com/dtcadnjtg/image/upload/v1777512497/E1_Building_and_flooded_streets_4_kor1ad.jpg",
+                "https://res.cloudinary.com/dtcadnjtg/image/upload/v1777512496/E1_Building_and_flooded_streets_5_qcqzwq.jpg",
+              ],
+              isAdventure: true,
+            },
+          },
+        ];
 
         const markerSymbol = {
-  type: "point-3d",
-  symbolLayers: [
-    {
-      type: "icon",
-      resource: {
-        href: "https://res.cloudinary.com/dtcadnjtg/image/upload/v1777244825/5b268d65-8a11-4232-9ea2-b53984f84b51_ayyezx.jpg"
-      },
-      size: 20,
-      outline: {
-        color: "white",
-        size: 1
-      }
-    }
-  ]
-};
+          type: "point-3d",
+          symbolLayers: [
+            {
+              type: "icon",
+              resource: {
+                href: "https://res.cloudinary.com/dtcadnjtg/image/upload/v1777244825/5b268d65-8a11-4232-9ea2-b53984f84b51_ayyezx.jpg",
+              },
+              size: 20,
+            },
+          ],
+        };
 
-        const pointGraphic = new Graphic({
-          geometry: point,
-          symbol: markerSymbol,
-          attributes: {
-            id: "adventure1",
-            title: "EarthQuest Adventure 1",
-            isAdventure: true,
-            images: [
-              "https://res.cloudinary.com/dtcadnjtg/image/upload/v1776215908/F_Hover_Motorboats_and_Yacht_1_n41zl4.jpg",
-              "https://res.cloudinary.com/dtcadnjtg/image/upload/v1776216057/F_Hudson_River_2_k7wzey.jpg",
-              "https://res.cloudinary.com/dtcadnjtg/image/upload/v1776216100/F_Hudson_River_7_il3u6a.jpg",
-            ],
-          },
+        // 🔥 ADD ALL PINS
+        scenarios.forEach((s) => {
+          const graphic = new Graphic({
+            geometry: {
+              type: "point",
+              latitude: s.lat,
+              longitude: s.lon,
+              z: 10,
+            },
+            symbol: markerSymbol,
+            attributes: s.data,
+          });
+
+          graphicsLayer.add(graphic);
         });
 
-        graphicsLayer.add(pointGraphic);
-
+        // 🔥 CLICK HANDLER
         view.on("click", function (event) {
           view.hitTest(event).then(function (response) {
             const result = response.results.find(
-              (r) => r.graphic && r.graphic.attributes?.isAdventure,
+              (r) => r.graphic?.attributes?.isAdventure,
             );
 
             if (result) {
-              const attrs = result.graphic.attributes;
-
               window.ReactNativeWebView.postMessage(
                 JSON.stringify({
                   type: "PIN_CLICK",
-                  data: attrs,
+                  data: result.graphic.attributes,
                 }),
               );
             }
           });
         });
 
-        // 🔍 Search
-        view.ui.add(new Search({ view }), "top-right");
+        // 🔍 IMPROVED SEARCH
+        const searchWidget = new Search({
+          view: view,
 
-        // 📍 Locate
-        view.ui.add(new Locate({ view }), "top-left");
+          // 🔥 Keep BOTH default + custom
+          includeDefaultSources: true,
 
-        // 🧭 Compass
-        view.ui.add(new Compass({ view }), "top-left");
+          sources: [
+            {
+              name: "EarthQuest Scenarios",
+              placeholder: "Search Watervliet, South Albany, Hudson Aquaculture...",
 
-        // 🏠 Home
-        view.ui.add(new Home({ view }), "top-left");
+              // 🔥 IMPORTANT
+              // Tell ArcGIS this is NOT a normal locator
+              getSuggestions: (params) => {
+                const term = params.suggestTerm?.toLowerCase() || "";
+
+                return scenarios
+                  .filter(
+                    (s) =>
+                      s.data.code.toLowerCase().includes(term) ||
+                      s.data.title.toLowerCase().includes(term) ||
+                      s.data.locationName.toLowerCase().includes(term),
+                  )
+                  .map((s) => ({
+                    key: s.data.id,
+                    text: `${s.data.code} - ${s.data.title} (${s.data.locationName})`,
+                    sourceIndex: 1, // 🔥 REQUIRED when default sources exist
+                  }));
+              },
+
+              getResults: (params) => {
+                let match;
+
+                // 🔥 handle BOTH cases
+                if (params.suggestResult) {
+                  match = scenarios.find(
+                    (s) => s.data.id === params.suggestResult.key,
+                  );
+                } else {
+                  const term = params.searchTerm?.toLowerCase() || "";
+
+                  match = scenarios.find(
+                    (s) =>
+                      s.data.code.toLowerCase().includes(term) ||
+                      s.data.title.toLowerCase().includes(term) ||
+                      s.data.locationName.toLowerCase().includes(term),
+                  );
+                }
+
+                if (!match) return [];
+
+                return [
+                  {
+                    feature: new Graphic({
+                      geometry: {
+                        type: "point",
+                        latitude: match.lat,
+                        longitude: match.lon,
+                        spatialReference: { wkid: 4326 },
+                      },
+                      attributes: match.data,
+                    }),
+                    name: `${match.data.code} - ${match.data.title}`,
+                  },
+                ];
+              },
+            },
+          ],
+        });
+
+        view.ui.add(searchWidget, "top-right");
+
+        // 👇 ADD HERE
+        searchWidget.on("select-result", (event) => {
+          const geom = event.result.feature.geometry;
+
+          view.goTo({
+            target: geom,
+            zoom: 16,
+          });
+
+          window.ReactNativeWebView.postMessage(
+            JSON.stringify({
+              type: "PIN_CLICK",
+              data: event.result.feature.attributes,
+            }),
+          );
+        });
       });
     </script>
   </head>
