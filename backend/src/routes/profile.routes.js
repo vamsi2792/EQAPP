@@ -6,6 +6,99 @@ const authMiddleware = require("../middleware/auth.middleware");
 const User = require("../models/User");
 const Club = require("../models/Club");
 
+const SU_CATEGORIES = [
+  { id: "food", questions: ["food_1", "food_2", "food_3"] },
+  { id: "housing", questions: ["housing_1", "housing_2", "housing_3"] },
+  {
+    id: "transportation",
+    questions: ["transportation_1", "transportation_2", "transportation_3"],
+  },
+  { id: "energy", questions: ["energy_1", "energy_2", "energy_3"] },
+  {
+    id: "landUseBiodiversity",
+    questions: [
+      "landUseBiodiversity_1",
+      "landUseBiodiversity_2",
+      "landUseBiodiversity_3",
+    ],
+  },
+  { id: "waterUse", questions: ["waterUse_1", "waterUse_2", "waterUse_3"] },
+  {
+    id: "ancestorsLifestyle",
+    questions: [
+      "ancestorsLifestyle_1",
+      "ancestorsLifestyle_2",
+      "ancestorsLifestyle_3",
+    ],
+  },
+  {
+    id: "contaminantsToxics",
+    questions: [
+      "contaminantsToxics_1",
+      "contaminantsToxics_2",
+      "contaminantsToxics_3",
+    ],
+  },
+  {
+    id: "consumptionWaste",
+    questions: [
+      "consumptionWaste_1",
+      "consumptionWaste_2",
+      "consumptionWaste_3",
+    ],
+  },
+  {
+    id: "climateActions",
+    questions: ["climateActions_1", "climateActions_2", "climateActions_3"],
+  },
+  {
+    id: "healthWellness",
+    questions: ["healthWellness_1", "healthWellness_2", "healthWellness_3"],
+  },
+  {
+    id: "communityParticipation",
+    questions: [
+      "communityParticipation_1",
+      "communityParticipation_2",
+      "communityParticipation_3",
+    ],
+  },
+];
+
+const calculateSUScore = (answers) => {
+  const normalizedAnswers = {};
+
+  SU_CATEGORIES.forEach((category) => {
+    category.questions.forEach((questionId) => {
+      const value = Number(answers?.[questionId]);
+
+      if (!Number.isInteger(value) || value < 0 || value > 4) {
+        throw new Error(`Invalid score for ${questionId}`);
+      }
+
+      normalizedAnswers[questionId] = value;
+    });
+  });
+
+  const categoryScores = {};
+
+  SU_CATEGORIES.forEach((category) => {
+    const sum = category.questions.reduce(
+      (total, questionId) => total + normalizedAnswers[questionId],
+      0
+    );
+
+    categoryScores[category.id] = Math.round(sum / category.questions.length);
+  });
+
+  const totalScore = Object.values(categoryScores).reduce(
+    (total, score) => total + score,
+    0
+  );
+
+  return { answers: normalizedAnswers, categoryScores, totalScore };
+};
+
 /* ===================== GET BASIC PROFILE ===================== */
 router.get("/", authMiddleware, async (req, res) => {
   try {
@@ -29,6 +122,7 @@ router.get("/", authMiddleware, async (req, res) => {
       clubCode: user.clubCode,
       clubRole: user.clubRole,
       clubApproved: user.clubApproved,
+      suScore: user.suScore,
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch profile" });
@@ -110,6 +204,7 @@ router.get("/full", authMiddleware, async (req, res) => {
         permissions: user.permissions,
         clubRole: user.clubRole,
         clubApproved: user.clubApproved,
+        suScore: user.suScore,
       },
       club: clubData,
     });
@@ -164,6 +259,38 @@ router.post("/leave-club", authMiddleware, async (req, res) => {
     res.json({ message: "Left club successfully" });
   } catch (err) {
     res.status(500).json({ message: "Failed to leave club" });
+  }
+});
+
+
+/* ===================== UPDATE SU SCORE / SUBADGE ===================== */
+router.put("/su-score", authMiddleware, async (req, res) => {
+  try {
+    const { answers, categoryScores, totalScore } = calculateSUScore(
+      req.body.answers
+    );
+
+    const user = await User.findByIdAndUpdate(
+      req.user.userId,
+      {
+        suScore: {
+          answers,
+          categoryScores,
+          totalScore,
+          completedAt: new Date(),
+        },
+      },
+      { new: true }
+    ).select("suScore");
+
+    res.json({
+      message: "SUBadge score saved",
+      suScore: user.suScore,
+    });
+  } catch (err) {
+    res.status(400).json({
+      message: err.message || "Invalid SUBadge answers",
+    });
   }
 });
 

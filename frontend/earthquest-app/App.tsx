@@ -21,6 +21,7 @@ import AdventureSelectScreen from "./screens/AdventureSelectScreen";
 import MissionBriefScreen from "./screens/MissionBriefScreen";
 import BecomeAMemberScreen from "./screens/BecomeAMemberScreen";
 import StorefrontScreen from "./screens/StoreFront";
+import SUScoreQuestionnaireScreen from "./screens/SUScoreQuestionnaireScreen";
 
 // 🛡️ ADDED: Import your new Club Screen here
 
@@ -121,6 +122,11 @@ export default function App() {
               <Stack.Screen 
                 name="StoreFront" 
                 component={StorefrontScreen} 
+              />
+
+              <Stack.Screen
+                name="SUScoreQuestionnaire"
+                component={SUScoreQuestionnaireScreen}
               />
             </>
           )}

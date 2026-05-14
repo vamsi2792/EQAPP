@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,15 @@ import {
   TextInput,
 } from "react-native";
 import { AuthContext } from "../App";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import SUBadge from "../components/SUBadge";
+import {
+  calculateSUCategoryScores,
+  createDefaultAnswers,
+  SUCategoryScores,
+} from "../utils/suScore";
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 
 /**
@@ -115,6 +124,39 @@ export default function MyProfileScreen({ navigation }: any) {
 
   // User States
   const currentUserRole = "gm"; 
+  const [suScores, setSuScores] = useState<SUCategoryScores>(
+    calculateSUCategoryScores(createDefaultAnswers()),
+  );
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const token =
+          (await AsyncStorage.getItem("authToken")) ||
+          (await AsyncStorage.getItem("token"));
+
+        if (!token || !API_URL) return;
+
+        const response = await fetch(`${API_URL}/api/profile/full`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "ngrok-skip-browser-warning": "true",
+          },
+        });
+
+        const data = await response.json();
+        const savedScores = data?.user?.suScore?.categoryScores;
+
+        if (savedScores) {
+          setSuScores(savedScores);
+        }
+      } catch (error) {
+        console.log("Failed to load profile SUscore", error);
+      }
+    };
+
+    loadProfile();
+  }, []);
   
   const [accountData, setAccountData] = useState({
     firstName: "Alex",
@@ -193,7 +235,13 @@ export default function MyProfileScreen({ navigation }: any) {
 
         {/* 🍕 TREE PIZZA BADGE */}
         <View style={styles.centeredBadgeContainer}>
-           <VanguardianBadge score={70} outOf={100} size={80} totalSlices={16} />
+           <SUBadge scores={suScores} size={110} />
+           <TouchableOpacity
+             style={styles.smallActionBtn}
+             onPress={() => navigation.navigate("SUScoreQuestionnaire")}
+           >
+             <Text style={styles.smallActionText}>Update SUBadge Score</Text>
+           </TouchableOpacity>
         </View>
 
         <View style={styles.card}>
@@ -320,6 +368,8 @@ const styles = StyleSheet.create({
   
   actionBtn: { backgroundColor: "#1E5F3A", padding: 18, borderRadius: 12, marginBottom: 15, borderWidth: 1, borderColor: "#74B08A", alignItems: "center" },
   actionBtnText: { color: "#EAF4EE", fontWeight: "bold", fontSize: 16 },
+  smallActionBtn: { backgroundColor: "#123524", borderColor: "#74B08A", borderRadius: 8, borderWidth: 1, marginTop: 12, paddingHorizontal: 14, paddingVertical: 10 },
+  smallActionText: { color: "#EAF4EE", fontSize: 13, fontWeight: "700" },
   
   /* PIZZA BADGE STYLES */
   sliceContainer: { position: 'absolute', alignItems: 'center' },

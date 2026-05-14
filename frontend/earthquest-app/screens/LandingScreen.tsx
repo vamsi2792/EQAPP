@@ -141,6 +141,16 @@ export default function LandingScreen({ navigation }: any) {
               <Text style={styles.modalButtonText}>My Profile</Text>
             </TouchableOpacity>
 
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setMenuVisible(false);
+                navigation.navigate("SUScoreQuestionnaire");
+              }}
+            >
+              <Text style={styles.modalButtonText}>SUBadge Questionnaire</Text>
+            </TouchableOpacity>
+
             {/* Clubs Button */}
             <TouchableOpacity
               style={styles.modalButton}
