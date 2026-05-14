@@ -159,6 +159,28 @@ const UserSchema = new mongoose.Schema(
       default: 1,
     },
 
+    // PERSONAL SUSTAINABILITY SCORE / SUBADGE
+    suScore: {
+      answers: {
+        type: Map,
+        of: Number,
+        default: {},
+      },
+      categoryScores: {
+        type: Map,
+        of: Number,
+        default: {},
+      },
+      totalScore: {
+        type: Number,
+        default: 0,
+      },
+      completedAt: {
+        type: Date,
+        default: null,
+      },
+    },
+
     // EMAIL VERIFICATION
     emailVerified: {
       type: Boolean,
