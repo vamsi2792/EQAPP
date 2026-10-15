@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 
 const User = require("../models/User");
 const authMiddleware = require("../middleware/auth.middleware");
+const adminMiddleware = require("../middleware/admin.middleware");
 const sendEmail = require("../utils/email");
 
 const router = express.Router();
@@ -302,9 +303,15 @@ router.post("/set-username", authMiddleware, async (req, res) => {
 });
 
 /* ===================== UPGRADE TO MEMBER ===================== */
-router.post("/upgrade-member", authMiddleware, async (req, res) => {
+// Admin-only: callers must send the x-admin-key header. The target user is
+// given by `userId` in the body. Users can no longer promote themselves.
+router.post("/upgrade-member", adminMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId);
+    const user = await User.findById(req.body.userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     user.accountType = "member";
     user.membershipActive = true;
@@ -329,9 +336,14 @@ router.post("/upgrade-member", authMiddleware, async (req, res) => {
 });
 
 /* ===================== UPGRADE TO GM ===================== */
-router.post("/upgrade-gm", authMiddleware, async (req, res) => {
+// Admin-only, same contract as upgrade-member.
+router.post("/upgrade-gm", adminMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId);
+    const user = await User.findById(req.body.userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     if (user.accountType !== "member") {
       return res.status(400).json({
@@ -341,7 +353,7 @@ router.post("/upgrade-gm", authMiddleware, async (req, res) => {
 
     user.accountType = "gm";
 
-    if (!user.username.endsWith("G")) {
+    if (user.username && !user.username.endsWith("G")) {
       user.username = user.username + "G";
     }
 
