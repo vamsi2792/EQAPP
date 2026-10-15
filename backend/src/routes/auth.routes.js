@@ -6,19 +6,25 @@ const User = require("../models/User");
 const authMiddleware = require("../middleware/auth.middleware");
 const adminMiddleware = require("../middleware/admin.middleware");
 const sendEmail = require("../utils/email");
+const {
+  OTP_TTL_MS,
+  MAX_OTP_ATTEMPTS,
+  generateOtp,
+  hashOtp,
+  otpMatches,
+} = require("../utils/otp");
 
 const router = express.Router();
 
 /* ===================== HELPERS ===================== */
-const generateOtp = () =>
-  Math.floor(100000 + Math.random() * 900000).toString();
+const isStr = (v) => typeof v === "string" && v.length > 0;
 
 /* ===================== SIGNUP ===================== */
 router.post("/signup", async (req, res) => {
   try {
     const { firstName, lastName, email, password, profile, clubCode } = req.body;
 
-    if (!firstName || !lastName || !email || !password) {
+    if (!isStr(firstName) || !isStr(lastName) || !isStr(email) || !isStr(password)) {
       return res.status(400).json({
         message: "All required fields must be filled",
       });
@@ -44,8 +50,8 @@ router.post("/signup", async (req, res) => {
       password: hashedPassword,
       profile,
       clubCode: clubCode || null,
-      emailOtp: otp,
-      emailOtpExpiry: Date.now() + 10 * 60 * 1000,
+      emailOtp: hashOtp(otp),
+      emailOtpExpiry: Date.now() + OTP_TTL_MS,
 
       // 🔥 IMPORTANT
       accountType: "registrant", // permissions auto-handled in schema
@@ -74,13 +80,26 @@ router.post("/verify-email", async (req, res) => {
   try {
     const { email, otp } = req.body;
 
+    if (!isStr(email) || otp === undefined || otp === null) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
     const user = await User.findOne({ email });
 
     if (
       !user ||
-      user.emailOtp !== String(otp) ||
-      user.emailOtpExpiry < Date.now()
+      !user.emailOtp ||
+      user.emailOtpExpiry < Date.now() ||
+      user.emailOtpAttempts >= MAX_OTP_ATTEMPTS
     ) {
+      return res.status(400).json({
+        message: "Invalid or expired OTP",
+      });
+    }
+
+    if (!otpMatches(otp, user.emailOtp)) {
+      user.emailOtpAttempts += 1;
+      await user.save();
       return res.status(400).json({
         message: "Invalid or expired OTP",
       });
@@ -89,6 +108,7 @@ router.post("/verify-email", async (req, res) => {
     user.emailVerified = true;
     user.emailOtp = null;
     user.emailOtpExpiry = null;
+    user.emailOtpAttempts = 0;
 
     await user.save();
 
@@ -104,33 +124,35 @@ router.post("/verify-email", async (req, res) => {
 });
 
 /* ===================== RESEND OTP ===================== */
+// Always answers the same way so it cannot be used to discover registered emails.
 router.post("/resend-otp", async (req, res) => {
   try {
     const { email } = req.body;
 
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found",
-      });
+    if (!isStr(email)) {
+      return res.status(400).json({ message: "Email required" });
     }
 
-    const otp = generateOtp();
+    const user = await User.findOne({ email });
 
-    user.emailOtp = otp;
-    user.emailOtpExpiry = Date.now() + 10 * 60 * 1000;
+    if (user && !user.emailVerified) {
+      const otp = generateOtp();
 
-    await user.save();
+      user.emailOtp = hashOtp(otp);
+      user.emailOtpExpiry = Date.now() + OTP_TTL_MS;
+      user.emailOtpAttempts = 0;
 
-    await sendEmail(
-      email,
-      "EarthQuest Email Verification OTP",
-      `Your new OTP is ${otp}`
-    );
+      await user.save();
+
+      await sendEmail(
+        email,
+        "EarthQuest Email Verification OTP",
+        `Your new OTP is ${otp}`
+      );
+    }
 
     res.json({
-      message: "OTP resent successfully",
+      message: "If the account exists, a new OTP has been sent",
     });
 
   } catch (err) {
@@ -145,7 +167,7 @@ router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (!isStr(email) || !isStr(password)) {
       return res.status(400).json({
         message: "Email and password required",
       });
@@ -203,33 +225,35 @@ router.post("/login", async (req, res) => {
 });
 
 /* ===================== FORGOT PASSWORD ===================== */
+// Always answers the same way so it cannot be used to discover registered emails.
 router.post("/forgot-password", async (req, res) => {
   try {
     const { email } = req.body;
 
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found",
-      });
+    if (!isStr(email)) {
+      return res.status(400).json({ message: "Email required" });
     }
 
-    const otp = generateOtp();
+    const user = await User.findOne({ email });
 
-    user.resetOtp = otp;
-    user.resetOtpExpiry = Date.now() + 10 * 60 * 1000;
+    if (user) {
+      const otp = generateOtp();
 
-    await user.save();
+      user.resetOtp = hashOtp(otp);
+      user.resetOtpExpiry = Date.now() + OTP_TTL_MS;
+      user.resetOtpAttempts = 0;
 
-    await sendEmail(
-      email,
-      "EarthQuest Password Reset OTP",
-      `Your OTP is ${otp}`
-    );
+      await user.save();
+
+      await sendEmail(
+        email,
+        "EarthQuest Password Reset OTP",
+        `Your OTP is ${otp}`
+      );
+    }
 
     res.json({
-      message: "Reset OTP sent to email",
+      message: "If the account exists, a reset OTP has been sent",
     });
 
   } catch (err) {
@@ -244,9 +268,26 @@ router.post("/reset-password", async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
 
+    if (!isStr(email) || !isStr(newPassword) || otp === undefined || otp === null) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
     const user = await User.findOne({ email });
 
-    if (!user || user.resetOtp !== otp || user.resetOtpExpiry < Date.now()) {
+    if (
+      !user ||
+      !user.resetOtp ||
+      user.resetOtpExpiry < Date.now() ||
+      user.resetOtpAttempts >= MAX_OTP_ATTEMPTS
+    ) {
+      return res.status(400).json({
+        message: "Invalid or expired OTP",
+      });
+    }
+
+    if (!otpMatches(otp, user.resetOtp)) {
+      user.resetOtpAttempts += 1;
+      await user.save();
       return res.status(400).json({
         message: "Invalid or expired OTP",
       });
@@ -257,6 +298,7 @@ router.post("/reset-password", async (req, res) => {
     user.password = await bcrypt.hash(newPassword, salt);
     user.resetOtp = null;
     user.resetOtpExpiry = null;
+    user.resetOtpAttempts = 0;
 
     await user.save();
 

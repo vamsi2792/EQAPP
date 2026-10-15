@@ -189,10 +189,12 @@ const UserSchema = new mongoose.Schema(
 
     emailOtp: String,
     emailOtpExpiry: Date,
+    emailOtpAttempts: { type: Number, default: 0 },
 
     // PASSWORD RESET
     resetOtp: String,
     resetOtpExpiry: Date,
+    resetOtpAttempts: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
