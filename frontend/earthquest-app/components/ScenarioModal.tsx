@@ -248,6 +248,40 @@ export default function ScenarioModal({
             )}
 
             {/* ===== Carousel ===== */}
+            {isAdmin && (
+              <View style={styles.toolbar}>
+                <Text style={styles.adminBadge}>ADMIN</Text>
+                <TouchableOpacity
+                  style={styles.toolBtn}
+                  onPress={pickAndUpload}
+                  disabled={busy}
+                  accessibilityLabel="Upload image"
+                >
+                  {busy ? (
+                    <ActivityIndicator size="small" color="#EAF4EE" />
+                  ) : (
+                    <Text style={styles.toolIcon}>＋</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.toolBtn, editing && styles.toolBtnOn]}
+                  onPress={() => setEditing((v) => !v)}
+                  accessibilityLabel="Edit text, captions and order"
+                >
+                  <Text style={styles.toolIcon}>✎</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.toolBtn, slides.length === 0 && styles.toolBtnOff]}
+                  onPress={() => slides[page] && removeImage(slides[page])}
+                  disabled={busy || slides.length === 0}
+                  accessibilityLabel="Delete this image"
+                >
+                  <Text style={styles.toolIcon}>🗑</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {!!error && !editing && <Text style={styles.error}>{error}</Text>}
+
             {slides.length > 0 ? (
               <View>
                 <FlatList
@@ -300,17 +334,6 @@ export default function ScenarioModal({
             </TouchableOpacity>
 
             {/* ===== Admin tools ===== */}
-            {isAdmin && (
-              <TouchableOpacity
-                style={styles.adminToggle}
-                onPress={() => setEditing((v) => !v)}
-              >
-                <Text style={styles.adminToggleText}>
-                  {editing ? "Hide admin tools" : "✎ Manage images & text (admin)"}
-                </Text>
-              </TouchableOpacity>
-            )}
-
             {isAdmin && editing && (
               <View style={styles.admin}>
                 {!!error && <Text style={styles.error}>{error}</Text>}
@@ -440,8 +463,37 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   secondaryText: { color: "#BFE0CB", fontWeight: "600" },
-  adminToggle: { marginTop: 14, alignItems: "center", padding: 6 },
-  adminToggleText: { color: "#74B08A", fontWeight: "700" },
+  toolbar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 8,
+    marginTop: 4,
+  },
+  adminBadge: {
+    marginRight: "auto",
+    color: "#0E1A14",
+    backgroundColor: "#74B08A",
+    fontSize: 11,
+    fontWeight: "800",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    overflow: "hidden",
+  },
+  toolBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#1E5F3A",
+    borderWidth: 1,
+    borderColor: "#74B08A",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  toolBtnOn: { backgroundColor: "#2F8A58" },
+  toolBtnOff: { opacity: 0.35 },
+  toolIcon: { color: "#EAF4EE", fontSize: 20, lineHeight: 24 },
   admin: {
     marginTop: 8,
     borderTopWidth: 1,
