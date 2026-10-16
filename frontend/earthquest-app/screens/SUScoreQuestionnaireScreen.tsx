@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getToken } from "../utils/authStorage";
 import SUBadge from "../components/SUBadge";
 import {
   calculateSUCategoryScores,
@@ -30,8 +30,7 @@ export default function SUScoreQuestionnaireScreen({ navigation }: any) {
     const loadSavedAnswers = async () => {
       try {
         const token =
-          (await AsyncStorage.getItem("authToken")) ||
-          (await AsyncStorage.getItem("token"));
+          await getToken();
 
         if (!token || !API_URL) return;
 
@@ -73,8 +72,7 @@ export default function SUScoreQuestionnaireScreen({ navigation }: any) {
     try {
       setSaving(true);
       const token =
-        (await AsyncStorage.getItem("authToken")) ||
-        (await AsyncStorage.getItem("token"));
+        await getToken();
 
       if (!token || !API_URL) {
         Alert.alert("Unable to save", "Login token or API URL is missing.");

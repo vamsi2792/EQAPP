@@ -1,7 +1,7 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useEffect, useState, createContext } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getToken, setToken, clearToken } from "./utils/authStorage";
 import { View, ActivityIndicator } from "react-native";
 
 import OpeningScreen from "./screens/OpeningScreen";
@@ -31,24 +31,44 @@ const Stack = createNativeStackNavigator();
 
 export const AuthContext = createContext<any>(null);
 
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const login = async (token: string) => {
-    await AsyncStorage.setItem("authToken", token);
+    await setToken(token);
     setIsAuthenticated(true);
   };
 
   const logout = async () => {
-    await AsyncStorage.removeItem("authToken");
-    await AsyncStorage.removeItem("user");
+    await clearToken();
     setIsAuthenticated(false);
   };
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = await AsyncStorage.getItem("authToken");
+      const token = await getToken();
+
+      if (token && API_URL) {
+        try {
+          // A stored token may have expired or been revoked (password reset, logout-all).
+          const res = await fetch(`${API_URL}/api/auth/me`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (res.status === 401) {
+            await clearToken();
+            setIsAuthenticated(false);
+            setLoading(false);
+            return;
+          }
+        } catch {
+          // Offline / server unreachable: keep the user signed in and let screens retry.
+        }
+      }
+
       setIsAuthenticated(!!token);
       setLoading(false);
     };

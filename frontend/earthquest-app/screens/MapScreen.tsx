@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -12,26 +12,36 @@ import {
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getToken } from "../utils/authStorage";
+import { AuthContext } from "../App";
+import ScenarioModal, { Scenario } from "../components/ScenarioModal";
+
+// Public address of the backend (ngrok tunnel while developing). It must match ARCGIS_REFERER.
+const BACKEND_URL = "https://fructuously-predegenerate-florance.ngrok-free.dev";
+
 
 export default function MapScreen({ route, navigation }: any) {
+  const { logout } = useContext(AuthContext);
   const [menuVisible, setMenuVisible] = useState(false);
   const [arcgisToken, setArcgisToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedAdventure, setSelectedAdventure] = useState(null);
+  const [selectedAdventure, setSelectedAdventure] = useState<Scenario | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const handleUnauthorized = useCallback(() => {
+    setSelectedAdventure(null);
+    logout();
+  }, [logout]);
 
   const adventure = route.params?.adventure;
 
-  const MAP_URL =
-    "https://fructuously-predegenerate-florance.ngrok-free.dev/earthquestMap.html";
+  const MAP_URL = `${BACKEND_URL}/earthquestMap.html`;
 
   // 🔥 Fetch ArcGIS token from backend
   useEffect(() => {
     const fetchToken = async () => {
       try {
-        const userJWT = await AsyncStorage.getItem("token");
-        // const userJWT = await AsyncStorage.getItem("token");
-        console.log("JWT FROM STORAGE:", userJWT);
+        const userJWT = await getToken();
 
         if (!userJWT) {
           console.log("No JWT found");
@@ -40,8 +50,7 @@ export default function MapScreen({ route, navigation }: any) {
         }
 
         const res = await fetch(
-          // "http://http://192.168.1.32:5000/api/arcgis-token",
-          "https://fructuously-predegenerate-florance.ngrok-free.dev/api/arcgis-token", // 🔴 CHANGE THIS
+          `${BACKEND_URL}/api/arcgis-token`,
           {
             method: "GET",
             headers: {
@@ -50,7 +59,21 @@ export default function MapScreen({ route, navigation }: any) {
           },
         );
 
+        if (res.status === 401) {
+          // Stored login expired or was revoked: sign out so the user lands on Login.
+          await logout();
+          return;
+        }
+
         const data = await res.json();
+
+        // Ask the backend whether this account is a content admin (shows the admin tools).
+        fetch(`${BACKEND_URL}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${userJWT}`, "ngrok-skip-browser-warning": "true" },
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((me) => setIsAdmin(!!me?.isAdmin))
+          .catch(() => {});
 
         if (data.token) {
           setArcgisToken(data.token);
@@ -133,45 +156,18 @@ export default function MapScreen({ route, navigation }: any) {
         <Text style={styles.hamburgerText}>☰</Text>
       </TouchableOpacity>
 
-      {selectedAdventure && (
-        <View style={styles.overlayCard}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {selectedAdventure.images?.map((img, index) => (
-              <Image
-                key={index}
-                source={{ uri: img }}
-                style={styles.overlayImage}
-              />
-            ))}
-          </ScrollView>
-
-          <Text style={styles.overlayTitle}>
-            {selectedAdventure.code} - {selectedAdventure.title}
-          </Text>
-
-          <Text style={styles.overlaySubtitle}>
-            {selectedAdventure.locationName}
-          </Text>
-
-          <TouchableOpacity
-            style={styles.overlayButton}
-            onPress={() => {
-              navigation.navigate("MissionBrief", {
-                adventure: selectedAdventure,
-              });
-            }}
-          >
-            <Text style={styles.overlayButtonText}>Open Mission</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => setSelectedAdventure(null)}
-          >
-            <Text style={styles.closeText}>✕</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {/* 🖼️ Scenario popup: image carousel, text and (for admins) image management */}
+      <ScenarioModal
+        scenario={selectedAdventure}
+        apiBase={BACKEND_URL}
+        isAdmin={isAdmin}
+        onClose={() => setSelectedAdventure(null)}
+        onOpenMission={(scenario) => {
+          setSelectedAdventure(null);
+          navigation.navigate("MissionBrief", { adventure: scenario });
+        }}
+        onUnauthorized={handleUnauthorized}
+      />
 
       {/* 📂 Side Menu */}
       <Modal visible={menuVisible} transparent animationType="slide">

@@ -4,22 +4,38 @@ const jwt = require("jsonwebtoken");
 
 const User = require("../models/User");
 const authMiddleware = require("../middleware/auth.middleware");
+const adminMiddleware = require("../middleware/admin.middleware");
 const sendEmail = require("../utils/email");
+const { isAdminUser } = require("../utils/admin");
+const {
+  OTP_TTL_MS,
+  MAX_OTP_ATTEMPTS,
+  generateOtp,
+  hashOtp,
+  otpMatches,
+} = require("../utils/otp");
 
 const router = express.Router();
 
 /* ===================== HELPERS ===================== */
-const generateOtp = () =>
-  Math.floor(100000 + Math.random() * 900000).toString();
+const isStr = (v) => typeof v === "string" && v.length > 0;
+const MIN_PASSWORD_LENGTH = 8;
+const isStrongEnough = (pw) => isStr(pw) && pw.length >= MIN_PASSWORD_LENGTH;
 
 /* ===================== SIGNUP ===================== */
 router.post("/signup", async (req, res) => {
   try {
     const { firstName, lastName, email, password, profile, clubCode } = req.body;
 
-    if (!firstName || !lastName || !email || !password) {
+    if (!isStr(firstName) || !isStr(lastName) || !isStr(email) || !isStr(password)) {
       return res.status(400).json({
         message: "All required fields must be filled",
+      });
+    }
+
+    if (!isStrongEnough(password)) {
+      return res.status(400).json({
+        message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters`,
       });
     }
 
@@ -43,8 +59,8 @@ router.post("/signup", async (req, res) => {
       password: hashedPassword,
       profile,
       clubCode: clubCode || null,
-      emailOtp: otp,
-      emailOtpExpiry: Date.now() + 10 * 60 * 1000,
+      emailOtp: hashOtp(otp),
+      emailOtpExpiry: Date.now() + OTP_TTL_MS,
 
       // 🔥 IMPORTANT
       accountType: "registrant", // permissions auto-handled in schema
@@ -73,13 +89,26 @@ router.post("/verify-email", async (req, res) => {
   try {
     const { email, otp } = req.body;
 
+    if (!isStr(email) || otp === undefined || otp === null) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
     const user = await User.findOne({ email });
 
     if (
       !user ||
-      user.emailOtp !== String(otp) ||
-      user.emailOtpExpiry < Date.now()
+      !user.emailOtp ||
+      user.emailOtpExpiry < Date.now() ||
+      user.emailOtpAttempts >= MAX_OTP_ATTEMPTS
     ) {
+      return res.status(400).json({
+        message: "Invalid or expired OTP",
+      });
+    }
+
+    if (!otpMatches(otp, user.emailOtp)) {
+      user.emailOtpAttempts += 1;
+      await user.save();
       return res.status(400).json({
         message: "Invalid or expired OTP",
       });
@@ -88,6 +117,7 @@ router.post("/verify-email", async (req, res) => {
     user.emailVerified = true;
     user.emailOtp = null;
     user.emailOtpExpiry = null;
+    user.emailOtpAttempts = 0;
 
     await user.save();
 
@@ -103,33 +133,35 @@ router.post("/verify-email", async (req, res) => {
 });
 
 /* ===================== RESEND OTP ===================== */
+// Always answers the same way so it cannot be used to discover registered emails.
 router.post("/resend-otp", async (req, res) => {
   try {
     const { email } = req.body;
 
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found",
-      });
+    if (!isStr(email)) {
+      return res.status(400).json({ message: "Email required" });
     }
 
-    const otp = generateOtp();
+    const user = await User.findOne({ email });
 
-    user.emailOtp = otp;
-    user.emailOtpExpiry = Date.now() + 10 * 60 * 1000;
+    if (user && !user.emailVerified) {
+      const otp = generateOtp();
 
-    await user.save();
+      user.emailOtp = hashOtp(otp);
+      user.emailOtpExpiry = Date.now() + OTP_TTL_MS;
+      user.emailOtpAttempts = 0;
 
-    await sendEmail(
-      email,
-      "EarthQuest Email Verification OTP",
-      `Your new OTP is ${otp}`
-    );
+      await user.save();
+
+      await sendEmail(
+        email,
+        "EarthQuest Email Verification OTP",
+        `Your new OTP is ${otp}`
+      );
+    }
 
     res.json({
-      message: "OTP resent successfully",
+      message: "If the account exists, a new OTP has been sent",
     });
 
   } catch (err) {
@@ -144,7 +176,7 @@ router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (!isStr(email) || !isStr(password)) {
       return res.status(400).json({
         message: "Email and password required",
       });
@@ -173,9 +205,9 @@ router.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userId: user._id },
+      { userId: user._id, tv: user.tokenVersion || 0 },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN }
+      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
     );
 
     res.json({
@@ -191,6 +223,7 @@ router.post("/login", async (req, res) => {
         membershipActive: user.membershipActive,
         clubCode: user.clubCode,
         permissions: user.permissions, // 🔥 IMPORTANT FOR FRONTEND
+        isAdmin: isAdminUser(user),
       },
     });
 
@@ -202,33 +235,35 @@ router.post("/login", async (req, res) => {
 });
 
 /* ===================== FORGOT PASSWORD ===================== */
+// Always answers the same way so it cannot be used to discover registered emails.
 router.post("/forgot-password", async (req, res) => {
   try {
     const { email } = req.body;
 
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found",
-      });
+    if (!isStr(email)) {
+      return res.status(400).json({ message: "Email required" });
     }
 
-    const otp = generateOtp();
+    const user = await User.findOne({ email });
 
-    user.resetOtp = otp;
-    user.resetOtpExpiry = Date.now() + 10 * 60 * 1000;
+    if (user) {
+      const otp = generateOtp();
 
-    await user.save();
+      user.resetOtp = hashOtp(otp);
+      user.resetOtpExpiry = Date.now() + OTP_TTL_MS;
+      user.resetOtpAttempts = 0;
 
-    await sendEmail(
-      email,
-      "EarthQuest Password Reset OTP",
-      `Your OTP is ${otp}`
-    );
+      await user.save();
+
+      await sendEmail(
+        email,
+        "EarthQuest Password Reset OTP",
+        `Your OTP is ${otp}`
+      );
+    }
 
     res.json({
-      message: "Reset OTP sent to email",
+      message: "If the account exists, a reset OTP has been sent",
     });
 
   } catch (err) {
@@ -243,9 +278,32 @@ router.post("/reset-password", async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
 
+    if (!isStr(email) || otp === undefined || otp === null) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    if (!isStrongEnough(newPassword)) {
+      return res.status(400).json({
+        message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters`,
+      });
+    }
+
     const user = await User.findOne({ email });
 
-    if (!user || user.resetOtp !== otp || user.resetOtpExpiry < Date.now()) {
+    if (
+      !user ||
+      !user.resetOtp ||
+      user.resetOtpExpiry < Date.now() ||
+      user.resetOtpAttempts >= MAX_OTP_ATTEMPTS
+    ) {
+      return res.status(400).json({
+        message: "Invalid or expired OTP",
+      });
+    }
+
+    if (!otpMatches(otp, user.resetOtp)) {
+      user.resetOtpAttempts += 1;
+      await user.save();
       return res.status(400).json({
         message: "Invalid or expired OTP",
       });
@@ -256,6 +314,8 @@ router.post("/reset-password", async (req, res) => {
     user.password = await bcrypt.hash(newPassword, salt);
     user.resetOtp = null;
     user.resetOtpExpiry = null;
+    user.resetOtpAttempts = 0;
+    user.tokenVersion = (user.tokenVersion || 0) + 1; // sign out all existing sessions
 
     await user.save();
 
@@ -302,9 +362,15 @@ router.post("/set-username", authMiddleware, async (req, res) => {
 });
 
 /* ===================== UPGRADE TO MEMBER ===================== */
-router.post("/upgrade-member", authMiddleware, async (req, res) => {
+// Admin-only: callers must send the x-admin-key header. The target user is
+// given by `userId` in the body. Users can no longer promote themselves.
+router.post("/upgrade-member", adminMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId);
+    const user = await User.findById(req.body.userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     user.accountType = "member";
     user.membershipActive = true;
@@ -329,9 +395,14 @@ router.post("/upgrade-member", authMiddleware, async (req, res) => {
 });
 
 /* ===================== UPGRADE TO GM ===================== */
-router.post("/upgrade-gm", authMiddleware, async (req, res) => {
+// Admin-only, same contract as upgrade-member.
+router.post("/upgrade-gm", adminMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId);
+    const user = await User.findById(req.body.userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     if (user.accountType !== "member") {
       return res.status(400).json({
@@ -341,7 +412,7 @@ router.post("/upgrade-gm", authMiddleware, async (req, res) => {
 
     user.accountType = "gm";
 
-    if (!user.username.endsWith("G")) {
+    if (user.username && !user.username.endsWith("G")) {
       user.username = user.username + "G";
     }
 
@@ -360,12 +431,24 @@ router.post("/upgrade-gm", authMiddleware, async (req, res) => {
   }
 });
 
+/* ===================== LOGOUT EVERYWHERE ===================== */
+// Invalidates every token issued so far (including the caller's own).
+router.post("/logout-all", authMiddleware, async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user.userId, { $inc: { tokenVersion: 1 } });
+
+    res.json({ message: "Signed out of all devices" });
+  } catch (err) {
+    res.status(500).json({ message: "Logout failed" });
+  }
+});
+
 /* ===================== GET CURRENT USER ===================== */
 router.get("/me", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select("-password");
 
-    res.json(user);
+    res.json({ ...user.toObject(), isAdmin: isAdminUser(user) });
 
   } catch (err) {
     res.status(500).json({

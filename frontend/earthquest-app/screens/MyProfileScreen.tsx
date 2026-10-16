@@ -12,7 +12,7 @@ import {
   TextInput,
 } from "react-native";
 import { AuthContext } from "../App";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getToken } from "../utils/authStorage";
 import SUBadge from "../components/SUBadge";
 import {
   calculateSUCategoryScores,
@@ -132,8 +132,7 @@ export default function MyProfileScreen({ navigation }: any) {
     const loadProfile = async () => {
       try {
         const token =
-          (await AsyncStorage.getItem("authToken")) ||
-          (await AsyncStorage.getItem("token"));
+          await getToken();
 
         if (!token || !API_URL) return;
 

@@ -1,6 +1,5 @@
 import { useContext, useState } from "react";
 import { AuthContext } from "../../App";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { View, Text, TextInput, StyleSheet, Pressable } from "react-native";
 
@@ -40,17 +39,8 @@ export default function LoginScreen({ navigation }: any) {
         return;
       }
 
-      // 🔐 Use context login
-      // await login(data.token);
-
-      // 🔐 Save token for MapScreen
-      await AsyncStorage.setItem("token", data.token);
-
-      // Optional: still keep context
+      // login() stores the token securely (see utils/authStorage.ts)
       await login(data.token);
-
-      // Optional
-      // await AsyncStorage.setItem("user", JSON.stringify(data.user));
     } catch (err) {
       console.error("Login error:", err);
       setError("Something went wrong. Please try again.");

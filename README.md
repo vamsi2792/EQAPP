@@ -23,15 +23,16 @@ EQAPP/
 - JWT Authentication
 - bcryptjs (password hashing)
 - dotenv
-- cors
+- cors, helmet, express-rate-limit (security hardening)
+- nodemailer (email OTP)
 - nodemon (dev)
 
 ### Frontend
 - React Native
-- Expo
+- Expo SDK 57 (React Native 0.86, React 19.2)
 - TypeScript
 - React Navigation
-- AsyncStorage
+- expo-secure-store (auth token; AsyncStorage fallback on web)
 - @react-native-picker/picker
 
 ## 📋 Prerequisites
@@ -154,16 +155,29 @@ Installed packages:
 
 Create `.env` inside `backend/`:
 
+Copy `backend/.env.example` to `backend/.env` and fill it in. **Never commit `.env`.**
+
 ```env
 PORT=5000
-MONGO_URI
-JWT_SECRET
-JWT_EXPIRES_IN
+MONGO_URI=
+JWT_SECRET=            # long random string
+JWT_EXPIRES_IN=7d
+EMAIL_USER=            # Gmail account used to send OTP emails
+EMAIL_PASS=            # Gmail app password
+ARCGIS_USERNAME=
+ARCGIS_PASSWORD=
+ARCGIS_REFERER=
+ADMIN_API_KEY=         # required for /api/auth/upgrade-member and /upgrade-gm (send as x-admin-key)
+ADMIN_EMAILS=          # comma-separated emails of in-app content admins (manage map scenario images)
+UPLOAD_DIR=            # optional, where uploaded images are stored (default backend/uploads)
+CORS_ORIGINS=          # optional, comma-separated browser origins; unset = allow all (dev only)
 ```
 
 ### Step 4: Start Backend Server
 ```bash
-npm run dev
+npm run dev     # development (nodemon)
+npm start       # production
+npm test        # run backend tests (no database needed)
 ```
 
 Expected output:
@@ -285,3 +299,12 @@ This is a research project.
 Coordinate changes via GitHub issues or pull requests.
 
 ## 📄 License
+
+## 🖼️ Managing map scenario images (admins)
+
+1. Put the admin's email in `ADMIN_EMAILS` in `backend/.env` and restart the backend. The account must be email-verified.
+2. Log in with that account and tap a scenario pin on the map. A **✎ Manage images & text (admin)** button appears in the popup.
+3. From there an admin can upload images from the phone, edit captions and the scenario text, reorder (▲ ▼) and delete images.
+   The first change copies the images built into the map page into the database so they can be edited like uploads.
+4. Every player sees the updated popup the next time they open that scenario. Uploaded files are stored in `backend/uploads/`
+   (git-ignored); back this folder up and keep it on persistent storage in production.
