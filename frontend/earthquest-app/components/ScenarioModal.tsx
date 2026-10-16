@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { File } from "expo-file-system";
+import * as ImageManipulator from "expo-image-manipulator";
 
 import { getToken } from "../utils/authStorage";
 
@@ -50,6 +51,7 @@ type Props = {
   onUnauthorized: () => void;
 };
 
+const MAX_IMAGE_WIDTH = 2000;
 const NGROK_HEADERS = { "ngrok-skip-browser-warning": "true" };
 
 export default function ScenarioModal({
@@ -174,13 +176,22 @@ export default function ScenarioModal({
       });
       if (result.canceled || !result.assets?.[0]) return;
 
-      const asset = result.assets[0];
+      const picked = result.assets[0];
+
+      // iPhones save HEIC photos, which the server (and Android phones) cannot use. Re-encode
+      // everything as JPEG and shrink huge originals (a 48 MP photo is far above the 8 MB limit).
+      const asset = await ImageManipulator.manipulateAsync(
+        picked.uri,
+        picked.width > MAX_IMAGE_WIDTH ? [{ resize: { width: MAX_IMAGE_WIDTH } }] : [],
+        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+      );
+
       await ensureImported();
 
       const form = new FormData();
       if (Platform.OS === "web") {
         const blob = await (await fetch(asset.uri)).blob();
-        form.append("image", blob, asset.fileName || "photo.jpg");
+        form.append("image", blob, "photo.jpg");
       } else {
         // Expo's fetch cannot send React Native's classic { uri, name, type } form part
         // ("Unsupported FormDataPart implementation"); expo-file-system's File can.
