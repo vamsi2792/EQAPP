@@ -7,6 +7,7 @@ import {
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +18,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { File } from "expo-file-system";
 
 import { getToken } from "../utils/authStorage";
 
@@ -176,11 +178,14 @@ export default function ScenarioModal({
       await ensureImported();
 
       const form = new FormData();
-      form.append("image", {
-        uri: asset.uri,
-        name: asset.fileName || "photo.jpg",
-        type: asset.mimeType || "image/jpeg",
-      } as any);
+      if (Platform.OS === "web") {
+        const blob = await (await fetch(asset.uri)).blob();
+        form.append("image", blob, asset.fileName || "photo.jpg");
+      } else {
+        // Expo's fetch cannot send React Native's classic { uri, name, type } form part
+        // ("Unsupported FormDataPart implementation"); expo-file-system's File can.
+        form.append("image", new File(asset.uri) as any);
+      }
 
       const data = await call("POST", "/images", undefined, form);
       applyContent(data);
