@@ -6,6 +6,7 @@ const User = require("../models/User");
 const authMiddleware = require("../middleware/auth.middleware");
 const adminMiddleware = require("../middleware/admin.middleware");
 const sendEmail = require("../utils/email");
+const { isAdminUser } = require("../utils/admin");
 const {
   OTP_TTL_MS,
   MAX_OTP_ATTEMPTS,
@@ -222,6 +223,7 @@ router.post("/login", async (req, res) => {
         membershipActive: user.membershipActive,
         clubCode: user.clubCode,
         permissions: user.permissions, // 🔥 IMPORTANT FOR FRONTEND
+        isAdmin: isAdminUser(user),
       },
     });
 
@@ -446,7 +448,7 @@ router.get("/me", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select("-password");
 
-    res.json(user);
+    res.json({ ...user.toObject(), isAdmin: isAdminUser(user) });
 
   } catch (err) {
     res.status(500).json({

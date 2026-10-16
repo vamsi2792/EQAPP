@@ -168,6 +168,8 @@ ARCGIS_USERNAME=
 ARCGIS_PASSWORD=
 ARCGIS_REFERER=
 ADMIN_API_KEY=         # required for /api/auth/upgrade-member and /upgrade-gm (send as x-admin-key)
+ADMIN_EMAILS=          # comma-separated emails of in-app content admins (manage map scenario images)
+UPLOAD_DIR=            # optional, where uploaded images are stored (default backend/uploads)
 CORS_ORIGINS=          # optional, comma-separated browser origins; unset = allow all (dev only)
 ```
 
@@ -297,3 +299,12 @@ This is a research project.
 Coordinate changes via GitHub issues or pull requests.
 
 ## 📄 License
+
+## 🖼️ Managing map scenario images (admins)
+
+1. Put the admin's email in `ADMIN_EMAILS` in `backend/.env` and restart the backend. The account must be email-verified.
+2. Log in with that account and tap a scenario pin on the map. A **✎ Manage images & text (admin)** button appears in the popup.
+3. From there an admin can upload images from the phone, edit captions and the scenario text, reorder (▲ ▼) and delete images.
+   The first change copies the images built into the map page into the database so they can be edited like uploads.
+4. Every player sees the updated popup the next time they open that scenario. Uploaded files are stored in `backend/uploads/`
+   (git-ignored); back this folder up and keep it on persistent storage in production.

@@ -47,3 +47,8 @@ coverage/
 # TypeScript
 # =========================
 *.tsbuildinfo
+
+# =========================
+# Admin-uploaded images
+# =========================
+uploads/

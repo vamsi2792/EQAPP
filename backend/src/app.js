@@ -10,6 +10,8 @@ const adventureRoutes = require("./routes/adventure.routes");
 const clubRoutes = require("./routes/club.routes");
 const profileRoutes = require("./routes/profile.routes");
 const arcgisRoutes = require("./routes/arcgis.routes");
+const scenarioRoutes = require("./routes/scenario.routes");
+const { UPLOAD_ROOT } = require("./utils/imageUpload");
 // const productRoutes = require("./routes/product.routes");
 
 
@@ -52,6 +54,17 @@ const authLimiter = rateLimit({
 // ✅ Serve static files (VERY IMPORTANT)
 app.use(express.static(path.join(__dirname, "public")));
 
+// Admin-uploaded scenario images. Names are random, only JPEG/PNG/WebP are ever written,
+// and CORP is relaxed so the web build (another origin) can display them.
+app.use(
+  "/uploads",
+  (req, res, next) => {
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    next();
+  },
+  express.static(UPLOAD_ROOT, { index: false, dotfiles: "deny" })
+);
+
 // Routes
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/adventures/enter-code", codeLimiter);
@@ -59,6 +72,7 @@ app.use("/api/adventures", adventureRoutes);
 app.use("/api/club/join", codeLimiter);
 app.use("/api/club", clubRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/scenarios", scenarioRoutes);
 app.use("/api", arcgisRoutes);
 // app.use("/products", productRoutes);
 
