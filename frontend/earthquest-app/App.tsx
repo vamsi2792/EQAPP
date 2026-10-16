@@ -1,7 +1,7 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useEffect, useState, createContext } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getToken, setToken, clearToken } from "./utils/authStorage";
 import { View, ActivityIndicator } from "react-native";
 
 import OpeningScreen from "./screens/OpeningScreen";
@@ -36,19 +36,18 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const login = async (token: string) => {
-    await AsyncStorage.setItem("authToken", token);
+    await setToken(token);
     setIsAuthenticated(true);
   };
 
   const logout = async () => {
-    await AsyncStorage.removeItem("authToken");
-    await AsyncStorage.removeItem("user");
+    await clearToken();
     setIsAuthenticated(false);
   };
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = await AsyncStorage.getItem("authToken");
+      const token = await getToken();
       setIsAuthenticated(!!token);
       setLoading(false);
     };

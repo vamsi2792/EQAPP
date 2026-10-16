@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getToken } from "../utils/authStorage";
 
 type SelectedAdventure = {
   code?: string;
@@ -36,9 +36,7 @@ export default function MapScreen({ route, navigation }: any) {
   useEffect(() => {
     const fetchToken = async () => {
       try {
-        const userJWT = await AsyncStorage.getItem("token");
-        // const userJWT = await AsyncStorage.getItem("token");
-        console.log("JWT FROM STORAGE:", userJWT);
+        const userJWT = await getToken();
 
         if (!userJWT) {
           console.log("No JWT found");

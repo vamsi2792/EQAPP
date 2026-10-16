@@ -18,6 +18,8 @@ const router = express.Router();
 
 /* ===================== HELPERS ===================== */
 const isStr = (v) => typeof v === "string" && v.length > 0;
+const MIN_PASSWORD_LENGTH = 8;
+const isStrongEnough = (pw) => isStr(pw) && pw.length >= MIN_PASSWORD_LENGTH;
 
 /* ===================== SIGNUP ===================== */
 router.post("/signup", async (req, res) => {
@@ -27,6 +29,12 @@ router.post("/signup", async (req, res) => {
     if (!isStr(firstName) || !isStr(lastName) || !isStr(email) || !isStr(password)) {
       return res.status(400).json({
         message: "All required fields must be filled",
+      });
+    }
+
+    if (!isStrongEnough(password)) {
+      return res.status(400).json({
+        message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters`,
       });
     }
 
@@ -268,8 +276,14 @@ router.post("/reset-password", async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
 
-    if (!isStr(email) || !isStr(newPassword) || otp === undefined || otp === null) {
+    if (!isStr(email) || otp === undefined || otp === null) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    if (!isStrongEnough(newPassword)) {
+      return res.status(400).json({
+        message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters`,
+      });
     }
 
     const user = await User.findOne({ email });

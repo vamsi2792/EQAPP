@@ -23,15 +23,16 @@ EQAPP/
 - JWT Authentication
 - bcryptjs (password hashing)
 - dotenv
-- cors
+- cors, helmet, express-rate-limit (security hardening)
+- nodemailer (email OTP)
 - nodemon (dev)
 
 ### Frontend
 - React Native
-- Expo
+- Expo SDK 57 (React Native 0.86, React 19.2)
 - TypeScript
 - React Navigation
-- AsyncStorage
+- expo-secure-store (auth token; AsyncStorage fallback on web)
 - @react-native-picker/picker
 
 ## 📋 Prerequisites
@@ -154,16 +155,27 @@ Installed packages:
 
 Create `.env` inside `backend/`:
 
+Copy `backend/.env.example` to `backend/.env` and fill it in. **Never commit `.env`.**
+
 ```env
 PORT=5000
-MONGO_URI
-JWT_SECRET
-JWT_EXPIRES_IN
+MONGO_URI=
+JWT_SECRET=            # long random string
+JWT_EXPIRES_IN=7d
+EMAIL_USER=            # Gmail account used to send OTP emails
+EMAIL_PASS=            # Gmail app password
+ARCGIS_USERNAME=
+ARCGIS_PASSWORD=
+ARCGIS_REFERER=
+ADMIN_API_KEY=         # required for /api/auth/upgrade-member and /upgrade-gm (send as x-admin-key)
+CORS_ORIGINS=          # optional, comma-separated browser origins; unset = allow all (dev only)
 ```
 
 ### Step 4: Start Backend Server
 ```bash
-npm run dev
+npm run dev     # development (nodemon)
+npm start       # production
+npm test        # run backend tests (no database needed)
 ```
 
 Expected output:
