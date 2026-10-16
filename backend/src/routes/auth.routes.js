@@ -204,9 +204,9 @@ router.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userId: user._id },
+      { userId: user._id, tv: user.tokenVersion || 0 },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN }
+      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
     );
 
     res.json({
@@ -313,6 +313,7 @@ router.post("/reset-password", async (req, res) => {
     user.resetOtp = null;
     user.resetOtpExpiry = null;
     user.resetOtpAttempts = 0;
+    user.tokenVersion = (user.tokenVersion || 0) + 1; // sign out all existing sessions
 
     await user.save();
 
@@ -425,6 +426,18 @@ router.post("/upgrade-gm", adminMiddleware, async (req, res) => {
     res.status(500).json({
       message: "GM upgrade failed",
     });
+  }
+});
+
+/* ===================== LOGOUT EVERYWHERE ===================== */
+// Invalidates every token issued so far (including the caller's own).
+router.post("/logout-all", authMiddleware, async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user.userId, { $inc: { tokenVersion: 1 } });
+
+    res.json({ message: "Signed out of all devices" });
+  } catch (err) {
+    res.status(500).json({ message: "Logout failed" });
   }
 });
 

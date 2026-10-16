@@ -6,6 +6,7 @@ const AdventureAccess = require("../models/AdventureAccess");
 const authMiddleware = require("../middleware/auth.middleware");
 const permissionMiddleware = require("../middleware/permission.middleware");
 const generateCode = require("../utils/generateCode");
+const { isNonEmptyString, isObjectId } = require("../utils/validate");
 
 
 /* ===================== GET MAP ADVENTURES (PUBLIC) ===================== */
@@ -38,7 +39,7 @@ router.post(
       const { adventureId } = req.body;
       const user = req.currentUser;
 
-      if (!adventureId) {
+      if (!isObjectId(adventureId)) {
         return res.status(400).json({ message: "Adventure ID required" });
       }
 
@@ -89,12 +90,12 @@ router.post("/enter-code", authMiddleware, async (req, res) => {
     const { code } = req.body;
     const user = req.user.userId;
 
-    if (!code) {
+    if (!isNonEmptyString(code)) {
       return res.status(400).json({ message: "Code is required" });
     }
 
     const access = await AdventureAccess.findOne({
-      accessCode: code,
+      accessCode: code.trim().toUpperCase(),
       isActive: true,
     }).populate("adventure");
 
@@ -144,6 +145,10 @@ router.get("/:id", authMiddleware, async (req, res) => {
     const adventureId = req.params.id;
     const userId = req.user.userId;
 
+    if (!isObjectId(adventureId)) {
+      return res.status(400).json({ message: "Invalid adventure id" });
+    }
+
     const access = await AdventureAccess.findOne({
       adventure: adventureId,
       players: userId,
@@ -170,7 +175,13 @@ router.post("/deactivate", authMiddleware, async (req, res) => {
     const { accessCode } = req.body;
     const userId = req.user.userId;
 
-    const access = await AdventureAccess.findOne({ accessCode });
+    if (!isNonEmptyString(accessCode)) {
+      return res.status(400).json({ message: "Access code is required" });
+    }
+
+    const access = await AdventureAccess.findOne({
+      accessCode: accessCode.trim().toUpperCase(),
+    });
 
     if (!access) {
       return res.status(404).json({ message: "Code not found" });

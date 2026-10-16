@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "node --test test/"
+    "test": "node --test --test-timeout=120000 test/"
   },
   "keywords": [],
   "author": "",
@@ -25,6 +25,7 @@
     "nodemailer": "^8.0.1"
   },
   "devDependencies": {
+    "mongodb-memory-server": "^11.3.0",
     "nodemon": "^3.1.11"
   }
 }

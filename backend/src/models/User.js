@@ -181,6 +181,9 @@ const UserSchema = new mongoose.Schema(
       },
     },
 
+    // Bumped to invalidate every JWT issued earlier (password reset, logout-all).
+    tokenVersion: { type: Number, default: 0 },
+
     // EMAIL VERIFICATION
     emailVerified: {
       type: Boolean,

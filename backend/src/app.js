@@ -3,6 +3,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const path = require("path");
+const mongoose = require("mongoose");
 
 const authRoutes = require("./routes/auth.routes");
 const adventureRoutes = require("./routes/adventure.routes");
@@ -11,6 +12,10 @@ const profileRoutes = require("./routes/profile.routes");
 const arcgisRoutes = require("./routes/arcgis.routes");
 // const productRoutes = require("./routes/product.routes");
 
+
+// Treat any "$operator" inside user-supplied query values as a literal, so a body like
+// { "code": { "$ne": null } } can never be used as a query operator (NoSQL injection).
+mongoose.set("sanitizeFilter", true);
 
 const app = express();
 
@@ -30,10 +35,17 @@ app.use(express.json({ limit: "100kb" }));
 // Broad ceiling for every route, plus a much tighter one for credential/OTP endpoints.
 const limiterOpts = { standardHeaders: true, legacyHeaders: false };
 app.use(rateLimit({ ...limiterOpts, windowMs: 15 * 60 * 1000, limit: 300 }));
+// Join/redeem endpoints take short guessable codes, so they get a tight limit as well.
+const codeLimiter = rateLimit({
+  ...limiterOpts,
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  message: { message: "Too many attempts, please try again later" },
+});
 const authLimiter = rateLimit({
   ...limiterOpts,
   windowMs: 15 * 60 * 1000,
-  limit: 20,
+  limit: Number(process.env.AUTH_RATE_LIMIT_MAX) || 20,
   message: { message: "Too many attempts, please try again later" },
 });
 
@@ -42,7 +54,9 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // Routes
 app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/adventures/enter-code", codeLimiter);
 app.use("/api/adventures", adventureRoutes);
+app.use("/api/club/join", codeLimiter);
 app.use("/api/club", clubRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api", arcgisRoutes);
