@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   StyleSheet,
@@ -13,6 +13,7 @@ import {
 import { WebView } from "react-native-webview";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getToken } from "../utils/authStorage";
+import { AuthContext } from "../App";
 
 type SelectedAdventure = {
   code?: string;
@@ -22,6 +23,7 @@ type SelectedAdventure = {
 };
 
 export default function MapScreen({ route, navigation }: any) {
+  const { logout } = useContext(AuthContext);
   const [menuVisible, setMenuVisible] = useState(false);
   const [arcgisToken, setArcgisToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +56,12 @@ export default function MapScreen({ route, navigation }: any) {
             },
           },
         );
+
+        if (res.status === 401) {
+          // Stored login expired or was revoked: sign out so the user lands on Login.
+          await logout();
+          return;
+        }
 
         const data = await res.json();
 
