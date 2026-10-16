@@ -14,11 +14,18 @@ import { WebView } from "react-native-webview";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+type SelectedAdventure = {
+  code?: string;
+  title?: string;
+  locationName?: string;
+  images?: string[];
+};
+
 export default function MapScreen({ route, navigation }: any) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [arcgisToken, setArcgisToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedAdventure, setSelectedAdventure] = useState(null);
+  const [selectedAdventure, setSelectedAdventure] = useState<SelectedAdventure | null>(null);
 
   const adventure = route.params?.adventure;
 
