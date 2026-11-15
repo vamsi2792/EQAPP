@@ -5,6 +5,7 @@ const authMiddleware = require("../middleware/auth.middleware");
 
 const User = require("../models/User");
 const Club = require("../models/Club");
+const clubs = require("../services/club.service");
 const {
   normalizeUsername,
   assertUsernameFree,
@@ -276,47 +277,9 @@ router.get("/full", authMiddleware, async (req, res) => {
 /* ===================== LEAVE CLUB ===================== */
 router.post("/leave-club", authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId);
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    if (!user.clubCode) {
-      return res.status(400).json({ message: "Not part of any club" });
-    }
-
-    const club = await Club.findOne({ clubCode: user.clubCode });
-
-    if (!club) {
-      return res.status(404).json({ message: "Club not found" });
-    }
-
-    // 🚫 GM cannot leave
-    if (club.gm.toString() === user._id.toString()) {
-      return res.status(400).json({
-        message: "GM cannot leave the club. Transfer ownership or delete club.",
-      });
-    }
-
-    // Remove from members
-    club.members = club.members.filter(
-      (id) => id.toString() !== user._id.toString()
-    );
-
-    club.totalMembers = Math.max(0, club.totalMembers - 1);
-
-    await club.save();
-
-    // Reset user club data
-    user.clubCode = null;
-    user.clubRole = null;
-    user.clubApproved = false;
-
-    await user.save();
-
-    res.json({ message: "Left club successfully" });
+    res.json({ message: await clubs.leaveClub(req.user.userId) });
   } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
     res.status(500).json({ message: "Failed to leave club" });
   }
 });
