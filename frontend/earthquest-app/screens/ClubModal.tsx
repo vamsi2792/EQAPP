@@ -284,6 +284,18 @@ export default function ClubScreen({ navigation }: any) {
           </TouchableOpacity>
         </>
       )}
+
+      {!isGm && (
+        <>
+          <Text style={[styles.sectionTitle, { marginTop: 28 }]}>Want to lead a club?</Text>
+          <Text style={styles.muted}>
+            Clubs are run by Game Mentors. Members can apply to become one.
+          </Text>
+          <TouchableOpacity style={styles.secondary} onPress={() => navigation.navigate("GmApply")}>
+            <Text style={styles.secondaryText}>Become a Game Mentor</Text>
+          </TouchableOpacity>
+        </>
+      )}
     </ScrollView>
   );
 

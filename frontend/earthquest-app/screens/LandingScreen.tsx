@@ -11,6 +11,7 @@ import {
 import { useEffect, useRef, useContext, useState } from "react";
 import { AuthContext } from "../App";
 import { fetchIsAdmin } from "../utils/chatApi";
+import { fetchProfile } from "../utils/profileApi";
 
 export default function LandingScreen({ navigation }: any) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -18,10 +19,14 @@ export default function LandingScreen({ navigation }: any) {
   const { logout } = useContext(AuthContext);
   const [menuVisible, setMenuVisible] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isGm, setIsGm] = useState(false);
 
-  // Admins get an extra "Review chat reports" menu item.
+  // Admins get extra review items; Game Mentors do not need the "Become a Game Mentor" one.
   useEffect(() => {
     fetchIsAdmin().then(setIsAdmin);
+    fetchProfile()
+      .then((p) => setIsGm(p.accountType === "gm"))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -177,6 +182,30 @@ export default function LandingScreen({ navigation }: any) {
             >
               <Text style={styles.modalButtonText}>Adventure groups</Text>
             </TouchableOpacity>
+
+            {!isGm && (
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => {
+                  setMenuVisible(false);
+                  navigation.navigate("GmApply");
+                }}
+              >
+                <Text style={styles.modalButtonText}>Become a Game Mentor</Text>
+              </TouchableOpacity>
+            )}
+
+            {isAdmin && (
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => {
+                  setMenuVisible(false);
+                  navigation.navigate("GmReview");
+                }}
+              >
+                <Text style={styles.modalButtonText}>Review Game Mentors</Text>
+              </TouchableOpacity>
+            )}
 
             {/* Chat moderation: only for admins */}
             {isAdmin && (

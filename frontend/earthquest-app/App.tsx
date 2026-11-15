@@ -31,6 +31,8 @@ import ChatInboxScreen from "./screens/ChatInboxScreen";
 import ChatScreen from "./screens/ChatScreen";
 import ReportsScreen from "./screens/ReportsScreen";
 import AdventureGroupsScreen from "./screens/AdventureGroupsScreen";
+import GmApplyScreen from "./screens/GmApplyScreen";
+import GmReviewScreen from "./screens/GmReviewScreen";
 import { connectChatSocket, disconnectChatSocket } from "./utils/chatSocket";
 
 const Stack = createNativeStackNavigator();
@@ -168,6 +170,10 @@ export default function App() {
 
               {/* 👥 Adventure codes: join or run a group */}
               <Stack.Screen name="AdventureGroups" component={AdventureGroupsScreen} />
+
+              {/* 🧙 Game Mentor applications (players apply, admins review) */}
+              <Stack.Screen name="GmApply" component={GmApplyScreen} />
+              <Stack.Screen name="GmReview" component={GmReviewScreen} />
             </>
           )}
 

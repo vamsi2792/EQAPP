@@ -289,6 +289,18 @@ export default function AdventureGroupsScreen({ navigation }: any) {
           </>
         )}
 
+        {!isGm && (
+          <>
+            <Text style={[styles.sectionTitle, { marginTop: 28 }]}>Want to lead a group?</Text>
+            <Text style={styles.muted}>
+              Only Game Mentors can create adventure codes. Members can apply to become one.
+            </Text>
+            <TouchableOpacity style={styles.secondary} onPress={() => navigation.navigate("GmApply")}>
+              <Text style={styles.secondaryText}>Become a Game Mentor</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
         <Text style={[styles.sectionTitle, { marginTop: 28 }]}>Your groups</Text>
         {groups.length === 0 ? (
           <Text style={styles.empty}>You are not in any group yet.</Text>
