@@ -168,6 +168,16 @@ export default function LandingScreen({ navigation }: any) {
               <Text style={styles.modalButtonText}>Messages</Text>
             </TouchableOpacity>
 
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setMenuVisible(false);
+                navigation.navigate("AdventureGroups");
+              }}
+            >
+              <Text style={styles.modalButtonText}>Adventure groups</Text>
+            </TouchableOpacity>
+
             {/* Chat moderation: only for admins */}
             {isAdmin && (
               <TouchableOpacity
