@@ -151,6 +151,16 @@ export default function LandingScreen({ navigation }: any) {
               <Text style={styles.modalButtonText}>SUBadge Questionnaire</Text>
             </TouchableOpacity>
 
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setMenuVisible(false);
+                navigation.navigate("ChatInbox");
+              }}
+            >
+              <Text style={styles.modalButtonText}>Messages</Text>
+            </TouchableOpacity>
+
             {/* Clubs Button */}
             <TouchableOpacity
               style={styles.modalButton}
