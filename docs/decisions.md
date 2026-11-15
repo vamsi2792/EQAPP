@@ -12,7 +12,24 @@ friend requests and no player search. Pending club members are not connected yet
 | Connection | Backend | In the app |
 |---|---|---|
 | Club | Done | **Done** (Club screen, real API) |
-| Adventure code | Done (`/api/adventures/*`) | **Not built yet** (next feature) |
+| Adventure code | Done (`/api/adventures/*`) | **Done** (Adventure groups screen) |
+
+## Adventure codes and groups
+
+- A **Game Master** creates a code for an open adventure (one code per GM per adventure)
+  and shares it; **any verified player** enters a code to join that GM's group. A group
+  is just a set of players: it **does not unlock** the adventure, the map or any content
+  (those stay open to everyone). Its purpose is to let a table of players see each other
+  and chat.
+- The adventure list now comes from the server (a small catalogue seeded with
+  `npm run seed:adventures`: Adventure 1 open, 2 and 3 "Coming Soon"). Locked adventures
+  cannot get or redeem codes.
+- Only the group's owner sees the code. The owner can pause or resume new joins, replace
+  the code (the old one stops working, players stay), remove a player, or delete the group.
+  Players can leave. Leaving, removal or deletion ends the chat link.
+- Entering a code twice no longer adds the player twice (bug fixed).
+- Codes are still free: there is no payment step, only the Game Master restriction.
+- Not built: code expiry, locking content behind a code, group chat.
 
 ## Chat
 
@@ -78,7 +95,8 @@ apply-and-approve flow before opening to real users.
 
 ## Known gaps (from the code review)
 
-- `POST /api/adventures/purchase` grants an access code **without payment**.
+- Adventure codes (`POST /api/adventures/codes`, alias `/purchase`) are Game Master only
+  but still **free**: there is no payment step.
 - Admin-uploaded scenario images are stored on local disk and will disappear on hosts
   with ephemeral storage; move to object storage before deploying.
 - Verification emails use Gmail SMTP (a daily sending cap); use a transactional email
@@ -107,11 +125,11 @@ apply-and-approve flow before opening to real users.
 
 ## Next steps
 
-1. Adventure-code flow in the app (enter a code, get a code), which gives players a
-   second way to connect and chat.
-2. Apply-and-approve flow for Game Mentors, plus a real membership step.
-3. Real payment, or removal of the free purchase path.
-4. Optional: unread badges, push notifications, club images, a blocked-players list.
+1. Apply-and-approve flow for Game Mentors, plus a real membership step (today only an
+   admin can make a GM, and GMs are needed to create clubs and adventure codes).
+2. Real payment, or a decision that codes stay free.
+3. Optional: unread badges, push notifications, club images, a blocked-players list,
+   code expiry.
 
 ## Continuing later
 
