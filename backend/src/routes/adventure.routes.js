@@ -5,16 +5,22 @@ const Adventure = require("../models/Adventure");
 const AdventureAccess = require("../models/AdventureAccess");
 const authMiddleware = require("../middleware/auth.middleware");
 const permissionMiddleware = require("../middleware/permission.middleware");
-const generateCode = require("../utils/generateCode");
 const { isNonEmptyString, isObjectId } = require("../utils/validate");
+const adventures = require("../services/adventure.service");
 
+// Service errors carry an HTTP status; anything else is an unexpected failure.
+const fail = (res, err, fallback) => {
+  if (err.status) return res.status(err.status).json({ message: err.message });
+  console.error(fallback, err.message);
+  return res.status(500).json({ message: fallback });
+};
 
 /* ===================== GET MAP ADVENTURES (PUBLIC) ===================== */
 router.get("/map", async (req, res) => {
   try {
-    const adventures = await Adventure.find({ isPublished: true });
+    const list = await Adventure.find({ isPublished: true });
 
-    const formatted = adventures.map((adv) => ({
+    const formatted = list.map((adv) => ({
       id: adv._id,
       title: adv.title,
       latitude: adv.location?.latitude,
@@ -29,96 +35,121 @@ router.get("/map", async (req, res) => {
   }
 });
 
-/* ===================== PURCHASE ADVENTURE ===================== */
-router.post(
-  "/purchase",
-  authMiddleware,
-  permissionMiddleware("canPurchase"),
-  async (req, res) => {
-    try {
-      const { adventureId } = req.body;
-      const user = req.currentUser;
-
-      if (!isObjectId(adventureId)) {
-        return res.status(400).json({ message: "Adventure ID required" });
-      }
-
-      const adventure = await Adventure.findById(adventureId);
-
-      if (!adventure) {
-        return res.status(404).json({ message: "Adventure not found" });
-      }
-
-      // 🔥 Prevent duplicate purchase
-      const existing = await AdventureAccess.findOne({
-        adventure: adventureId,
-        owner: user._id,
-      });
-
-      if (existing) {
-        return res.json({
-          message: "Already purchased",
-          accessCode: existing.accessCode,
-        });
-      }
-
-      const code = generateCode();
-
-      const access = await AdventureAccess.create({
-        adventure: adventure._id,
-        owner: user._id,
-        accessCode: code,
-        players: [user._id],
-      });
-
-      res.json({
-        message: "Adventure purchased successfully",
-        accessCode: code,
-        adventure,
-      });
-
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Purchase failed" });
-    }
+/* ===================== ADVENTURE LIST (what the app shows) ===================== */
+router.get("/", authMiddleware, async (req, res) => {
+  try {
+    res.json(await adventures.listCatalogue());
+  } catch (err) {
+    fail(res, err, "Failed to fetch adventures");
   }
-);
+});
+
+/* ===================== CREATE A CODE (Game Masters only) ===================== */
+// A code puts a table of players in one group. `/purchase` is the original name of this
+// route and is kept so existing callers keep working. It is NOT a payment: there is no
+// payment step yet, only the Game Master restriction.
+const createCodeHandler = async (req, res) => {
+  try {
+    const { access, adventure, created } = await adventures.createCode(
+      req.user.userId,
+      req.body.adventureId
+    );
+
+    res.json({
+      message: created ? "Adventure code created" : "You already have a code for this adventure",
+      accessCode: access.accessCode,
+      adventure,
+      group: adventures.summarize(access, adventure, req.user.userId),
+    });
+  } catch (err) {
+    fail(res, err, "Could not create the code");
+  }
+};
+
+router.post("/codes", authMiddleware, permissionMiddleware("canCreateClub"), createCodeHandler);
+router.post("/purchase", authMiddleware, permissionMiddleware("canCreateClub"), createCodeHandler);
 
 /* ===================== ENTER ADVENTURE CODE ===================== */
 router.post("/enter-code", authMiddleware, async (req, res) => {
   try {
     const { code } = req.body;
-    const user = req.user.userId;
 
     if (!isNonEmptyString(code)) {
       return res.status(400).json({ message: "Code is required" });
     }
 
-    const access = await AdventureAccess.findOne({
-      accessCode: code.trim().toUpperCase(),
-      isActive: true,
-    }).populate("adventure");
+    const { group, adventure } = await adventures.joinByCode(req.user.userId, code);
 
-    if (!access) {
-      return res.status(404).json({ message: "Invalid code" });
-    }
-
-    if (!access.players.includes(user)) {
-      access.players.push(user);
-      await access.save();
-    }
-
-    res.json({
-      message: "Access granted",
-      adventure: access.adventure,
-    });
-
+    res.json({ message: "Access granted", adventure, group });
   } catch (err) {
-    res.status(500).json({ message: "Failed to join adventure" });
+    fail(res, err, "Failed to join adventure");
   }
 });
 
-/* ===================== GET MY ADVENTURES ===================== */
+/* ===================== MY GROUPS ===================== */
+router.get("/groups", authMiddleware, async (req, res) => {
+  try {
+    res.json(await adventures.listGroups(req.user.userId));
+  } catch (err) {
+    fail(res, err, "Failed to load groups");
+  }
+});
+
+router.get("/groups/:id", authMiddleware, async (req, res) => {
+  try {
+    res.json(await adventures.getGroup(req.user.userId, req.params.id));
+  } catch (err) {
+    fail(res, err, "Failed to load group");
+  }
+});
+
+router.post("/groups/:id/leave", authMiddleware, async (req, res) => {
+  try {
+    await adventures.leaveGroup(req.user.userId, req.params.id);
+    res.json({ message: "You left the group" });
+  } catch (err) {
+    fail(res, err, "Failed to leave group");
+  }
+});
+
+router.delete("/groups/:id", authMiddleware, async (req, res) => {
+  try {
+    await adventures.deleteGroup(req.user.userId, req.params.id);
+    res.json({ message: "Group deleted" });
+  } catch (err) {
+    fail(res, err, "Failed to delete group");
+  }
+});
+
+router.post("/groups/:id/remove", authMiddleware, async (req, res) => {
+  try {
+    await adventures.removePlayer(req.user.userId, req.params.id, req.body.userId);
+    res.json({ message: "Player removed" });
+  } catch (err) {
+    fail(res, err, "Failed to remove player");
+  }
+});
+
+router.post("/groups/:id/new-code", authMiddleware, async (req, res) => {
+  try {
+    await adventures.rotateCode(req.user.userId, req.params.id);
+    res.json(await adventures.getGroup(req.user.userId, req.params.id));
+  } catch (err) {
+    fail(res, err, "Failed to create a new code");
+  }
+});
+
+router.post("/groups/:id/active", authMiddleware, async (req, res) => {
+  try {
+    await adventures.setActive(req.user.userId, req.params.id, req.body.isActive);
+    res.json(await adventures.getGroup(req.user.userId, req.params.id));
+  } catch (err) {
+    fail(res, err, "Failed to update the group");
+  }
+});
+
+/* ===================== GET MY ADVENTURES (original route, kept) ===================== */
+// The access code is only returned to the group's owner; players do not need it.
 router.get("/my-adventures", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -127,13 +158,12 @@ router.get("/my-adventures", authMiddleware, async (req, res) => {
       players: userId,
     }).populate("adventure");
 
-    const adventures = accesses.map((a) => ({
-      accessCode: a.accessCode,
+    const mine = accesses.map((a) => ({
+      ...(String(a.owner) === String(userId) && { accessCode: a.accessCode }),
       adventure: a.adventure,
     }));
 
-    res.json(adventures);
-
+    res.json(mine);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch adventures" });
   }
@@ -169,7 +199,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
   }
 });
 
-/* ===================== DEACTIVATE CODE ===================== */
+/* ===================== DEACTIVATE CODE (original route, kept) ===================== */
 router.post("/deactivate", authMiddleware, async (req, res) => {
   try {
     const { accessCode } = req.body;

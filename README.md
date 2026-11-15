@@ -186,6 +186,18 @@ MongoDB connected
 Server running on port 5000
 ```
 
+#### Seed the adventure list (once per database)
+
+The app's adventure screen and adventure codes use a small catalogue stored in the
+database. Create it once (it is safe to run again):
+
+```bash
+npm run seed:adventures
+```
+
+It writes to the database named in `MONGO_URI` (so make sure the connection string
+ends with the database name, e.g. `.../earthquest`).
+
 ### Step 5: Test Backend
 
 Open browser:

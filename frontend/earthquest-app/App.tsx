@@ -30,6 +30,7 @@ import ClubModal from "./screens/ClubModal";
 import ChatInboxScreen from "./screens/ChatInboxScreen";
 import ChatScreen from "./screens/ChatScreen";
 import ReportsScreen from "./screens/ReportsScreen";
+import AdventureGroupsScreen from "./screens/AdventureGroupsScreen";
 import { connectChatSocket, disconnectChatSocket } from "./utils/chatSocket";
 
 const Stack = createNativeStackNavigator();
@@ -164,6 +165,9 @@ export default function App() {
               <Stack.Screen name="ChatInbox" component={ChatInboxScreen} />
               <Stack.Screen name="Chat" component={ChatScreen} />
               <Stack.Screen name="ChatReports" component={ReportsScreen} />
+
+              {/* 👥 Adventure codes: join or run a group */}
+              <Stack.Screen name="AdventureGroups" component={AdventureGroupsScreen} />
             </>
           )}
 
