@@ -75,23 +75,31 @@ friend requests and no player search. Pending club members are not connected yet
   the club. The GM cannot leave; they delete the club.
 - Not built: club images, transferring GM ownership, join-request notifications.
 
-## Game Mentors (GMs): open decision
+## Game Mentors (GMs)
 
-How things work today: a GM exists only when an admin calls `/api/auth/upgrade-member`
-then `/api/auth/upgrade-gm` with `ADMIN_API_KEY`. There is no in-app path and no written
-qualification. The app already presents "Become a GM" as a members-only perk, and the
-membership/payment step is a placeholder that links to the external website.
+The ladder: **player** (any verified account), **member** (the $10 annual membership,
+sold on the website), **Game Mentor** (a member who applies and is approved).
 
-Recommended direction (not decided yet):
-1. **Player**: any verified account.
-2. **Member**: completes the membership step (payment or approval; currently a placeholder).
-3. **Game Mentor**: a member who applies in the app, agrees to a short code of conduct,
-   and is approved by the EarthQuest team (the same admins who review reports). Admins
-   can also revoke GM status; decide what happens to a demoted GM's club (disband it or
-   assign a new GM).
-
-For a small pilot, keeping manual promotion by admin key is acceptable. Build the
-apply-and-approve flow before opening to real users.
+- **Only members can apply.** In the app: Landing menu > "Become a Game Mentor" (also linked
+  from the Club and Adventure groups screens for non-GMs). The player reads the code of
+  conduct, ticks "I agree", and writes a short message (20-500 characters). One
+  application can be pending at a time; a declined player may apply again.
+- **The code of conduct** lives in `backend/src/utils/conduct.js` and is a **first draft:
+  edit the wording**. When its meaning changes, change its `version` so people are asked to
+  agree to the latest text. The last point tells applicants that revoking GM status deletes
+  their club and groups.
+- **The EarthQuest team decides.** Accounts whose verified email is in `ADMIN_EMAILS` see
+  Landing menu > "Review Game Mentors": approve or decline applications (with an optional
+  note the applicant sees), and a list of current Game Mentors.
+- **Revoking** a Game Mentor sends them back to member (or registrant if the membership is
+  not active) and **deletes their club and every adventure group they own**; the people in
+  them are freed and no longer connected. The confirmation spells out what will be deleted.
+- Membership itself is still granted by an admin (`/api/auth/upgrade-member` with
+  `ADMIN_API_KEY`); the app cannot tell when someone has paid on the website. The
+  admin-key routes `/upgrade-member` and `/upgrade-gm` remain as a manual override.
+- Not built: email or push notice of decisions (applicants see the result in the app),
+  appeals, a re-apply cool-down, transferring a club instead of deleting it, and an audit
+  log beyond the reviewer and timestamp on each application.
 
 ## Known gaps (from the code review)
 
@@ -125,8 +133,8 @@ apply-and-approve flow before opening to real users.
 
 ## Next steps
 
-1. Apply-and-approve flow for Game Mentors, plus a real membership step (today only an
-   admin can make a GM, and GMs are needed to create clubs and adventure codes).
+1. A real membership step: detect the website purchase (or a payment inside the app), so an
+   admin no longer has to grant membership by hand.
 2. Real payment, or a decision that codes stay free.
 3. Optional: unread badges, push notifications, club images, a blocked-players list,
    code expiry.
