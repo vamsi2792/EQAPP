@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
 const AdventureAccess = require("../models/AdventureAccess");
+const Block = require("../models/Block");
 
 const idStr = (v) => String(v);
 
@@ -16,11 +17,22 @@ const sharesApprovedClub = (a, b) =>
 const sharesAdventure = async (idA, idB) =>
   !!(await AdventureAccess.exists({ players: trusted({ $all: [idA, idB] }) }));
 
+// Blocking is two-way: if either person blocked the other, neither can message.
+const isBlockedEitherWay = async (idA, idB) =>
+  !!(await Block.exists({
+    $or: [
+      { blocker: idA, blocked: idB },
+      { blocker: idB, blocked: idA },
+    ],
+  }));
+
 /** True when `userA` and `userB` (User documents) are allowed to chat. */
 const canChat = async (userA, userB) => {
   if (!userA || !userB) return false;
   if (idStr(userA._id) === idStr(userB._id)) return false;
   if (userA.emailVerified !== true || userB.emailVerified !== true) return false;
+
+  if (await isBlockedEitherWay(userA._id, userB._id)) return false;
 
   if (sharesApprovedClub(userA, userB)) return true;
 
@@ -56,6 +68,15 @@ const listContacts = async (userId) => {
       if (idStr(p) !== idStr(me._id)) ids.add(idStr(p));
     })
   );
+
+  // Hide anyone blocked in either direction.
+  const blocks = await Block.find({ $or: [{ blocker: me._id }, { blocked: me._id }] }).select(
+    "blocker blocked"
+  );
+  blocks.forEach((b) => {
+    ids.delete(idStr(b.blocker));
+    ids.delete(idStr(b.blocked));
+  });
 
   const users = await User.find({ _id: trusted({ $in: [...ids] }), emailVerified: true }).select(
     "firstName lastName username"

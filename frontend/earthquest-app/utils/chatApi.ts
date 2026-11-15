@@ -84,3 +84,64 @@ export const sendMessageRest = (conversationId: string, text: string) =>
 
 export const displayName = (u: ChatUser) =>
   [u.firstName, u.lastName].filter(Boolean).join(" ") || u.username || "Player";
+
+/* ===================== BLOCK / REPORT ===================== */
+
+export type ReportReason = "harassment" | "spam" | "inappropriate" | "other";
+
+export const REPORT_REASONS: { id: ReportReason; label: string }[] = [
+  { id: "harassment", label: "Harassment or bullying" },
+  { id: "spam", label: "Spam" },
+  { id: "inappropriate", label: "Inappropriate content" },
+  { id: "other", label: "Something else" },
+];
+
+/** Ids of the players I have blocked. */
+export const fetchBlocks = () => request<string[]>("GET", "/blocks");
+
+export const blockUser = (userId: string) =>
+  request<{ message: string }>("POST", "/blocks", { userId });
+
+export const unblockUser = (userId: string) =>
+  request<{ message: string }>("DELETE", `/blocks/${userId}`);
+
+export const reportMessage = (messageId: string, reason: ReportReason, note?: string) =>
+  request<{ message: string }>("POST", "/reports", {
+    messageId,
+    reason,
+    note: note?.trim() || undefined,
+  });
+
+/* ===================== ADMIN REVIEW ===================== */
+
+export type AdminReport = {
+  id: string;
+  reason: ReportReason;
+  note: string;
+  status: "open" | "resolved";
+  createdAt: string;
+  reporter: { id: string; name: string } | null;
+  reported: { id: string; name: string } | null;
+  context: { sender: string; text: string; createdAt: string; reported: boolean }[];
+};
+
+export const fetchReports = (status: "open" | "resolved" = "open") =>
+  request<AdminReport[]>("GET", `/admin/reports?status=${status}`);
+
+export const resolveReport = (id: string) =>
+  request<AdminReport>("PATCH", `/admin/reports/${id}`, { status: "resolved" });
+
+/** Whether the signed-in account is a content/chat admin (listed in ADMIN_EMAILS). */
+export async function fetchIsAdmin(): Promise<boolean> {
+  if (!API_URL) return false;
+  try {
+    const token = await getToken();
+    const res = await fetch(`${API_URL}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" },
+    });
+    const me = res.ok ? await res.json() : null;
+    return !!me?.isAdmin;
+  } catch {
+    return false;
+  }
+}

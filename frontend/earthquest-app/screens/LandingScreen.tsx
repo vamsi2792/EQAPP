@@ -10,12 +10,19 @@ import {
 } from "react-native";
 import { useEffect, useRef, useContext, useState } from "react";
 import { AuthContext } from "../App";
+import { fetchIsAdmin } from "../utils/chatApi";
 
 export default function LandingScreen({ navigation }: any) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateAnim = useRef(new Animated.Value(30)).current;
   const { logout } = useContext(AuthContext);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Admins get an extra "Review chat reports" menu item.
+  useEffect(() => {
+    fetchIsAdmin().then(setIsAdmin);
+  }, []);
 
   useEffect(() => {
     Animated.parallel([
@@ -160,6 +167,19 @@ export default function LandingScreen({ navigation }: any) {
             >
               <Text style={styles.modalButtonText}>Messages</Text>
             </TouchableOpacity>
+
+            {/* Chat moderation: only for admins */}
+            {isAdmin && (
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => {
+                  setMenuVisible(false);
+                  navigation.navigate("ChatReports");
+                }}
+              >
+                <Text style={styles.modalButtonText}>Review chat reports</Text>
+              </TouchableOpacity>
+            )}
 
             {/* Clubs Button */}
             <TouchableOpacity
