@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AuthContext } from "../App";
@@ -63,8 +64,12 @@ export default function ChatInboxScreen({ navigation }: any) {
     }
   }, [handleError]);
 
-  // Refresh whenever the screen comes back into view (e.g. after leaving a chat).
-  useEffect(() => navigation.addListener("focus", load), [navigation, load]);
+  // Load on first show and refresh whenever the screen comes back into view.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   // Keep the list live: move/update a conversation as soon as a message arrives.
   useEffect(() => {
