@@ -166,6 +166,7 @@ module.exports = {
   includesId,
   roleIn,
   clearClubFields,
+  toPerson,
   loadMyClub,
   removeFromClub,
   leaveClub,

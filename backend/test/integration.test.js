@@ -311,7 +311,8 @@ test("adventure access codes cannot be guessed with query operators", async () =
     isPublished: true,
     location: { latitude: 1, longitude: 2 },
   });
-  const owner = await registerUser("owner@example.com");
+  // Only Game Masters can create codes.
+  const owner = await registerGm("owner@example.com");
   const stranger = await registerUser("stranger@example.com");
 
   let res = await api.post(
