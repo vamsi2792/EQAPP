@@ -77,6 +77,13 @@ const leaveClub = async (userId) => {
   return role === "pending" ? "Join request cancelled" : "Left club successfully";
 };
 
+/** Deletes a club document and frees everyone in it (members, pending players, the GM). */
+const destroyClub = async (club) => {
+  const everyone = [club.gm, ...club.members, ...club.pendingMembers];
+  await clearClubFields(everyone);
+  await Club.deleteOne({ _id: club._id });
+};
+
 /** GM only: deletes the club and frees everyone in it. */
 const deleteClub = async (userId) => {
   const { club, role } = await loadMyClub(userId);
@@ -84,9 +91,7 @@ const deleteClub = async (userId) => {
   if (!club) throw httpError(404, "Club not found");
   if (role !== "gm") throw httpError(403, "Only the club GM can do this");
 
-  const everyone = [club.gm, ...club.members, ...club.pendingMembers];
-  await clearClubFields(everyone);
-  await Club.deleteOne({ _id: club._id });
+  await destroyClub(club);
 };
 
 /* ===================== VIEW ===================== */
@@ -170,6 +175,7 @@ module.exports = {
   loadMyClub,
   removeFromClub,
   leaveClub,
+  destroyClub,
   deleteClub,
   buildMyClubView,
 };
