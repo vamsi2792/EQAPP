@@ -5,6 +5,41 @@ const authMiddleware = require("../middleware/auth.middleware");
 
 const User = require("../models/User");
 const Club = require("../models/Club");
+const {
+  normalizeUsername,
+  assertUsernameFree,
+  isUsernameDuplicate,
+} = require("../utils/username");
+
+// Free-text profile fields a player may edit, with their maximum lengths.
+const PROFILE_FIELDS = {
+  age: 10,
+  gender: 60,
+  ethnicity: 60,
+  language: 60,
+  location: 60,
+  discord: 60,
+  aboutMe: 300,
+};
+const NAME_MAX = 50;
+
+// The profile as the app sees it. Never includes password or OTP/token fields.
+const serializeUser = (user) => ({
+  id: user._id,
+  firstName: user.firstName,
+  lastName: user.lastName,
+  username: user.username,
+  email: user.email,
+  profile: user.profile,
+  accountType: user.accountType,
+  membershipActive: user.membershipActive,
+  xp: user.xp,
+  level: user.level,
+  permissions: user.permissions,
+  clubRole: user.clubRole,
+  clubApproved: user.clubApproved,
+  suScore: user.suScore,
+});
 
 const SU_CATEGORIES = [
   { id: "food", questions: ["food_1", "food_2", "food_3"] },
@@ -133,26 +168,65 @@ router.get("/", authMiddleware, async (req, res) => {
 /* ===================== UPDATE PROFILE ===================== */
 router.put("/update", authMiddleware, async (req, res) => {
   try {
-    const { firstName, lastName, profile } = req.body;
+    const { firstName, lastName, username, profile } = req.body;
 
-    // 🔒 Only allow safe updates
-    const updates = {
-      ...(firstName && { firstName }),
-      ...(lastName && { lastName }),
-      ...(profile && { profile }),
-    };
+    // 🔒 Only allow safe updates. Everything is validated before anything is written.
+    const updates = {};
 
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user.userId,
-      updates,
-      { new: true }
-    ).select("-password");
+    for (const [key, value] of [
+      ["firstName", firstName],
+      ["lastName", lastName],
+    ]) {
+      if (value === undefined) continue;
+      if (typeof value !== "string" || !value.trim() || value.trim().length > NAME_MAX) {
+        return res
+          .status(400)
+          .json({ message: `${key} must be text of 1-${NAME_MAX} characters` });
+      }
+      updates[key] = value.trim();
+    }
+
+    if (username !== undefined) {
+      updates.username = normalizeUsername(username);
+      await assertUsernameFree(updates.username, req.user.userId);
+    }
+
+    if (profile !== undefined) {
+      if (!profile || typeof profile !== "object" || Array.isArray(profile)) {
+        return res.status(400).json({ message: "profile must be an object" });
+      }
+
+      // Dotted paths change only the fields that were sent, so a partial update cannot
+      // wipe the rest of the profile.
+      for (const [key, value] of Object.entries(profile)) {
+        const max = PROFILE_FIELDS[key];
+        if (!max) continue; // unknown keys are ignored
+        if (typeof value !== "string" || value.length > max) {
+          return res
+            .status(400)
+            .json({ message: `${key} must be text of at most ${max} characters` });
+        }
+        updates[`profile.${key}`] = value.trim();
+      }
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(req.user.userId, updates, {
+      new: true,
+    });
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     res.json({
       message: "Profile updated",
-      user: updatedUser,
+      user: serializeUser(updatedUser),
     });
   } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    if (isUsernameDuplicate(err)) {
+      return res.status(400).json({ message: "Username already taken" });
+    }
     res.status(500).json({ message: "Update failed" });
   }
 });
@@ -190,22 +264,7 @@ router.get("/full", authMiddleware, async (req, res) => {
     }
 
     res.json({
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        username: user.username,
-        email: user.email,
-        profile: user.profile,
-        accountType: user.accountType,
-        membershipActive: user.membershipActive,
-        xp: user.xp,
-        level: user.level,
-        permissions: user.permissions,
-        clubRole: user.clubRole,
-        clubApproved: user.clubApproved,
-        suScore: user.suScore,
-      },
+      user: serializeUser(user),
       club: clubData,
     });
   } catch (err) {
