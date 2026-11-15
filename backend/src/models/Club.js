@@ -15,6 +15,10 @@ const ClubSchema = new mongoose.Schema(
       uppercase: true,
     },
 
+    // Short description and an optional Discord invite link, edited by the GM.
+    bio: { type: String, trim: true, maxlength: 300, default: "" },
+    discord: { type: String, trim: true, maxlength: 200, default: "" },
+
     // 👑 Game Mentor (Owner of club)
     gm: {
       type: mongoose.Schema.Types.ObjectId,

@@ -4,7 +4,7 @@ const router = express.Router();
 const ScenarioContent = require("../models/ScenarioContent");
 const authMiddleware = require("../middleware/auth.middleware");
 const adminUserMiddleware = require("../middleware/adminUser.middleware");
-const { isNonEmptyString, isObjectId } = require("../utils/validate");
+const { isNonEmptyString, isObjectId, isHttpUrl } = require("../utils/validate");
 const {
   upload,
   saveScenarioImage,
@@ -30,15 +30,6 @@ const validScenario = (req, res, next) => {
     return res.status(400).json({ message: "Invalid scenario id" });
   }
   next();
-};
-
-const isHttpUrl = (v) => {
-  try {
-    const u = new URL(v);
-    return u.protocol === "http:" || u.protocol === "https:";
-  } catch {
-    return false;
-  }
 };
 
 /* ===================== READ (any logged-in player) ===================== */
