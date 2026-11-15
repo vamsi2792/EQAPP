@@ -199,6 +199,17 @@ export default function MapScreen({ route, navigation }: any) {
               </Text>
             </TouchableOpacity>
 
+            {/* 💬 Chat with other players while playing */}
+            <TouchableOpacity
+              style={styles.menuButton}
+              onPress={() => {
+                setMenuVisible(false);
+                navigation.navigate("ChatInbox");
+              }}
+            >
+              <Text style={styles.menuButtonText}>Messages</Text>
+            </TouchableOpacity>
+
             {/* 🔮 Future Features */}
             <TouchableOpacity style={styles.menuButton}>
               <Text style={styles.menuButtonText}>Vanguardian Profile</Text>

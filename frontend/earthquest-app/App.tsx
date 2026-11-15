@@ -27,6 +27,10 @@ import SUScoreQuestionnaireScreen from "./screens/SUScoreQuestionnaireScreen";
 
 import ClubModal from "./screens/ClubModal";
 
+import ChatInboxScreen from "./screens/ChatInboxScreen";
+import ChatScreen from "./screens/ChatScreen";
+import { connectChatSocket, disconnectChatSocket } from "./utils/chatSocket";
+
 const Stack = createNativeStackNavigator();
 
 export const AuthContext = createContext<any>(null);
@@ -75,6 +79,12 @@ export default function App() {
 
     checkAuth();
   }, []);
+
+  // Live chat connection exists only while signed in (login/logout both flip isAuthenticated).
+  useEffect(() => {
+    if (isAuthenticated) connectChatSocket();
+    else disconnectChatSocket();
+  }, [isAuthenticated]);
 
   if (loading) {
     return (
@@ -148,6 +158,10 @@ export default function App() {
                 name="SUScoreQuestionnaire"
                 component={SUScoreQuestionnaireScreen}
               />
+
+              {/* 💬 Player chat */}
+              <Stack.Screen name="ChatInbox" component={ChatInboxScreen} />
+              <Stack.Screen name="Chat" component={ChatScreen} />
             </>
           )}
 

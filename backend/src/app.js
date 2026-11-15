@@ -11,6 +11,8 @@ const clubRoutes = require("./routes/club.routes");
 const profileRoutes = require("./routes/profile.routes");
 const arcgisRoutes = require("./routes/arcgis.routes");
 const scenarioRoutes = require("./routes/scenario.routes");
+const chatRoutes = require("./routes/chat.routes");
+const { allowedOrigins } = require("./config/cors");
 const { UPLOAD_ROOT } = require("./utils/imageUpload");
 // const productRoutes = require("./routes/product.routes");
 
@@ -24,12 +26,6 @@ const app = express();
 // CSP is off because the bundled ArcGIS map page relies on inline/third-party scripts.
 app.use(helmet({ contentSecurityPolicy: false }));
 
-// CORS_ORIGINS="https://a.com,https://b.com" restricts browser origins.
-// Unset = allow all (local dev). Native mobile requests send no Origin and are unaffected.
-const allowedOrigins = (process.env.CORS_ORIGINS || "")
-  .split(",")
-  .map((o) => o.trim())
-  .filter(Boolean);
 app.use(cors(allowedOrigins.length ? { origin: allowedOrigins } : undefined));
 
 app.use(express.json({ limit: "100kb" }));
@@ -43,6 +39,13 @@ const codeLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 30,
   message: { message: "Too many attempts, please try again later" },
+});
+// Chat polls history and sends messages, so it gets more headroom than the code endpoints.
+const chatLimiter = rateLimit({
+  ...limiterOpts,
+  windowMs: 60 * 1000,
+  limit: 120,
+  message: { message: "Too many requests, slow down" },
 });
 const authLimiter = rateLimit({
   ...limiterOpts,
@@ -73,6 +76,7 @@ app.use("/api/club/join", codeLimiter);
 app.use("/api/club", clubRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/scenarios", scenarioRoutes);
+app.use("/api/chat", chatLimiter, chatRoutes);
 app.use("/api", arcgisRoutes);
 // app.use("/products", productRoutes);
 
