@@ -10,9 +10,16 @@ import {
   ScrollView,
   SafeAreaView,
   TextInput,
+  ActivityIndicator,
 } from "react-native";
 import { AuthContext } from "../App";
-import { getToken } from "../utils/authStorage";
+import {
+  Profile,
+  ProfileApiError,
+  accountTypeLabel,
+  fetchProfile,
+  updateProfile,
+} from "../utils/profileApi";
 import SUBadge from "../components/SUBadge";
 import {
   calculateSUCategoryScores,
@@ -20,7 +27,6 @@ import {
   SUCategoryScores,
 } from "../utils/suScore";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 
 /**
@@ -123,51 +129,111 @@ export default function MyProfileScreen({ navigation }: any) {
   
 
   // User States
-  const currentUserRole = "gm"; 
   const [suScores, setSuScores] = useState<SUCategoryScores>(
     calculateSUCategoryScores(createDefaultAnswers()),
   );
 
+  // Real account data from the server (nothing here is a placeholder).
+  const emptyAccount = {
+    firstName: "",
+    lastName: "",
+    userId: "",
+    username: "",
+    email: "",
+    accountType: "",
+    age: "",
+    gender: "",
+    ethnicity: "",
+    language: "",
+    location: "",
+    discord: "",
+    aboutMe: "",
+  };
+  const [accountData, setAccountData] = useState(emptyAccount);
+  const [role, setRole] = useState<Profile["accountType"]>("registrant");
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  const applyProfile = (user: Profile) => {
+    setRole(user.accountType);
+    setAccountData({
+      firstName: user.firstName ?? "",
+      lastName: user.lastName ?? "",
+      userId: user.id,
+      username: user.username ?? "",
+      email: user.email,
+      accountType: accountTypeLabel(user.accountType),
+      age: user.profile?.age ?? "",
+      gender: user.profile?.gender ?? "",
+      ethnicity: user.profile?.ethnicity ?? "",
+      language: user.profile?.language ?? "",
+      location: user.profile?.location ?? "",
+      discord: user.profile?.discord ?? "",
+      aboutMe: user.profile?.aboutMe ?? "",
+    });
+  };
+
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const token =
-          await getToken();
+        const user = await fetchProfile();
+        applyProfile(user);
 
-        if (!token || !API_URL) return;
-
-        const response = await fetch(`${API_URL}/api/profile/full`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "ngrok-skip-browser-warning": "true",
-          },
-        });
-
-        const data = await response.json();
-        const savedScores = data?.user?.suScore?.categoryScores;
-
+        const savedScores = user.suScore?.categoryScores;
         if (savedScores) {
-          setSuScores(savedScores);
+          setSuScores(savedScores as SUCategoryScores);
         }
       } catch (error) {
-        console.log("Failed to load profile SUscore", error);
+        if (error instanceof ProfileApiError && error.status === 401) {
+          logout(); // saved login expired or was revoked
+          return;
+        }
+        setProfileError(error instanceof Error ? error.message : "Could not load your profile");
+      } finally {
+        setProfileLoading(false);
       }
     };
 
     loadProfile();
   }, []);
-  
-  const [accountData, setAccountData] = useState({
-    firstName: "Alex",
-    lastName: "Chen",
-    userId: "EQ-8493-X",
-    username: "alexc_eq",
-    discord: "alexc#9921",
-    email: "alex.chen@email.com",
-    accountType: "Game Master",
-    demographic: "North America, 20-29",
-    aboutMe: "Veteran explorer mapping out new territories.",
-  });
+
+  const saveAccount = async () => {
+    setSaving(true);
+    setSaveError("");
+
+    try {
+      const username = accountData.username.trim();
+
+      const user = await updateProfile({
+        firstName: accountData.firstName,
+        lastName: accountData.lastName,
+        // A blank box means "no username chosen yet"; the server needs a valid one to set it.
+        ...(username && { username }),
+        profile: {
+          age: accountData.age,
+          gender: accountData.gender,
+          ethnicity: accountData.ethnicity,
+          language: accountData.language,
+          location: accountData.location,
+          discord: accountData.discord,
+          aboutMe: accountData.aboutMe,
+        },
+      });
+
+      applyProfile(user);
+      setAccountModalOpen(false);
+    } catch (error) {
+      if (error instanceof ProfileApiError && error.status === 401) {
+        logout();
+        return;
+      }
+      setSaveError(error instanceof Error ? error.message : "Could not save your changes");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const [vanguardianData, setVanguardianData] = useState({
     name: "Thalor Mossweaver",
@@ -225,12 +291,21 @@ export default function MyProfileScreen({ navigation }: any) {
         <View style={styles.avatarWrapper}>
           <Image source={{ uri: "https://cdn-icons-png.flaticon.com/512/149/149071.png" }} style={styles.mainAvatar} />
           <View style={styles.mainRoleBadgePos}>
-             <RoleBadge role={currentUserRole} size={32} />
+             <RoleBadge role={role} size={32} />
           </View>
         </View>
 
-        <Text style={styles.nameText}>{accountData.firstName} {accountData.lastName}</Text>
-        <Text style={styles.userText}>@{accountData.username}</Text>
+        {profileLoading ? (
+          <ActivityIndicator style={{ marginVertical: 14 }} color="#74B08A" />
+        ) : (
+          <>
+            <Text style={styles.nameText}>{accountData.firstName} {accountData.lastName}</Text>
+            <Text style={styles.userText}>
+              {accountData.username ? `@${accountData.username}` : "No username yet. Add one in Account Details."}
+            </Text>
+          </>
+        )}
+        {!!profileError && <Text style={styles.profileError}>{profileError}</Text>}
 
         {/* 🍕 TREE PIZZA BADGE */}
         <View style={styles.centeredBadgeContainer}>
@@ -254,7 +329,13 @@ export default function MyProfileScreen({ navigation }: any) {
 
         {/* DETAILED INFO BUTTONS */}
         <View style={{ paddingHorizontal: 20 }}>
-          <TouchableOpacity style={styles.actionBtn} onPress={() => setAccountModalOpen(true)}>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => {
+              setSaveError("");
+              setAccountModalOpen(true);
+            }}
+          >
             <Text style={styles.actionBtnText}>Account Details</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={() => setVanguardianModalOpen(true)}>
@@ -281,17 +362,22 @@ export default function MyProfileScreen({ navigation }: any) {
           <ScrollView contentContainerStyle={styles.formContainer}>
             <FormInput label="First Name" value={accountData.firstName} onChange={(t:string) => setAccountData({...accountData, firstName: t})} />
             <FormInput label="Last Name" value={accountData.lastName} onChange={(t:string) => setAccountData({...accountData, lastName: t})} />
-            <FormInput label="Username" value={accountData.username} onChange={(t:string) => setAccountData({...accountData, username: t})} />
+            <FormInput label="Username (3-20: letters, numbers, _)" value={accountData.username} onChange={(t:string) => setAccountData({...accountData, username: t})} />
             <FormInput label="User ID" value={accountData.userId} editable={false} />
-            <FormInput label="Email ID" value={accountData.email} onChange={(t:string) => setAccountData({...accountData, email: t})} />
+            <FormInput label="Email" value={accountData.email} editable={false} />
             <FormInput label="Discord Account" value={accountData.discord} onChange={(t:string) => setAccountData({...accountData, discord: t})} />
             <FormInput label="Account Type" value={accountData.accountType} editable={false} />
-            <FormInput label="Membership Status" value={currentUserRole.toUpperCase()} editable={false} />
-            <FormInput label="Demographics" value={accountData.demographic} onChange={(t:string) => setAccountData({...accountData, demographic: t})} />
+            <FormInput label="Age" value={accountData.age} onChange={(t:string) => setAccountData({...accountData, age: t})} />
+            <FormInput label="Gender" value={accountData.gender} onChange={(t:string) => setAccountData({...accountData, gender: t})} />
+            <FormInput label="Race" value={accountData.ethnicity} onChange={(t:string) => setAccountData({...accountData, ethnicity: t})} />
+            <FormInput label="Language" value={accountData.language} onChange={(t:string) => setAccountData({...accountData, language: t})} />
+            <FormInput label="Country" value={accountData.location} onChange={(t:string) => setAccountData({...accountData, location: t})} />
             <FormInput label="About Me" value={accountData.aboutMe} onChange={(t:string) => setAccountData({...accountData, aboutMe: t})} multiline />
-            
-            <TouchableOpacity style={styles.saveBtn} onPress={() => setAccountModalOpen(false)}>
-              <Text style={styles.saveBtnText}>Save Changes</Text>
+
+            {!!saveError && <Text style={styles.profileError}>{saveError}</Text>}
+
+            <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={saveAccount} disabled={saving}>
+              {saving ? <ActivityIndicator color="#EAF4EE" /> : <Text style={styles.saveBtnText}>Save Changes</Text>}
             </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>
@@ -310,6 +396,9 @@ export default function MyProfileScreen({ navigation }: any) {
             <View style={{ width: 40 }} />
           </View>
           <ScrollView contentContainerStyle={styles.formContainer}>
+            <Text style={styles.previewNote}>
+              Preview only: Vanguardian details are sample data and are not saved yet.
+            </Text>
             <FormInput label="Vanguardian Name" value={vanguardianData.name} onChange={(t:string) => setVanguardianData({...vanguardianData, name: t})} />
             <FormInput label="Branch / Level" value={vanguardianData.branchLevel} editable={false} />
             <FormInput label="Home Ecoregion" value={vanguardianData.homeEcoregion} onChange={(t:string) => setVanguardianData({...vanguardianData, homeEcoregion: t})} />
@@ -337,6 +426,15 @@ export default function MyProfileScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0E1A14" },
+  profileError: { color: "#FF8A80", textAlign: "center", marginVertical: 8, paddingHorizontal: 20 },
+  previewNote: {
+    color: "#BFE0CB",
+    backgroundColor: "#13271C",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 14,
+    textAlign: "center",
+  },
   headerBtnLeft: { position: "absolute", top: 50, left: 20, zIndex: 10 },
   headerBtnRight: { position: "absolute", top: 50, right: 20, zIndex: 10 },
   navIconText: { fontSize: 28, color: "#E8F5E9", fontWeight: "bold" },
