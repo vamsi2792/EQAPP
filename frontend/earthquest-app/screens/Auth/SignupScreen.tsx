@@ -28,6 +28,7 @@ export default function SignupScreen({ navigation }: any) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  const [username, setUsername] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [ethnicity, setEthnicity] = useState("");
@@ -98,8 +99,14 @@ export default function SignupScreen({ navigation }: any) {
   };
 
   const handleSignup = async () => {
-  setLoading(true);
   setError("");
+
+  // Same rule as the server (3-20 letters, numbers or underscores); the server has the final say.
+  if (!/^[A-Za-z0-9_]{3,20}$/.test(username.trim())) {
+    return setError("Username must be 3-20 characters: letters, numbers and underscores only.");
+  }
+
+  setLoading(true);
 
   try {
     const response = await fetch(`${API_URL}/api/auth/signup`, {
@@ -108,6 +115,7 @@ export default function SignupScreen({ navigation }: any) {
       body: JSON.stringify({
         firstName,
         lastName,
+        username: username.trim(),
         email,
         password,
         profile: { age, gender, ethnicity, language, location },
@@ -172,6 +180,13 @@ export default function SignupScreen({ navigation }: any) {
           {step === 2 && (
             <>
               <Text style={styles.title}>Player Identity</Text>
+
+              <Input
+                placeholder="Username (letters, numbers, _)"
+                value={username}
+                onChangeText={setUsername}
+                maxLength={20}
+              />
 
               <SearchableDropdown
                 placeholder="Age"

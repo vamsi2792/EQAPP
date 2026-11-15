@@ -29,6 +29,7 @@ const registerUser = async (email, password = "password123") => {
   let res = await api.post("/api/auth/signup", {
     firstName: "Test",
     lastName: email.split("@")[0],
+    username: email.split("@")[0],
     email,
     password,
   });

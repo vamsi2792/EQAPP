@@ -56,10 +56,13 @@ const UserSchema = new mongoose.Schema(
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
 
+    // Stored lowercase (see utils/username.js) so uniqueness is case-insensitive.
     username: {
       type: String,
       unique: true,
       sparse: true,
+      lowercase: true,
+      trim: true,
     },
 
     email: {
@@ -84,6 +87,8 @@ const UserSchema = new mongoose.Schema(
       ethnicity: String,
       language: String,
       location: String,
+      discord: String,
+      aboutMe: String,
     },
 
     // ACCOUNT TYPE

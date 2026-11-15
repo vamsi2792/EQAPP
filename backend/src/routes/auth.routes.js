@@ -8,6 +8,11 @@ const adminMiddleware = require("../middleware/admin.middleware");
 const sendEmail = require("../utils/email");
 const { isAdminUser } = require("../utils/admin");
 const {
+  normalizeUsername,
+  assertUsernameFree,
+  isUsernameDuplicate,
+} = require("../utils/username");
+const {
   OTP_TTL_MS,
   MAX_OTP_ATTEMPTS,
   generateOtp,
@@ -39,6 +44,9 @@ router.post("/signup", async (req, res) => {
       });
     }
 
+    // Throws a 400 with the rules when the username is missing or malformed.
+    const username = normalizeUsername(req.body.username);
+
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -46,6 +54,8 @@ router.post("/signup", async (req, res) => {
         message: "User already exists with this email",
       });
     }
+
+    await assertUsernameFree(username);
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -55,6 +65,7 @@ router.post("/signup", async (req, res) => {
     const user = await User.create({
       firstName,
       lastName,
+      username,
       email,
       password: hashedPassword,
       profile,
@@ -77,6 +88,17 @@ router.post("/signup", async (req, res) => {
     });
 
   } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({ message: error.message });
+    }
+    // Two signups racing for the same name/email get past the checks above; the unique
+    // indexes still catch the second one.
+    if (isUsernameDuplicate(error)) {
+      return res.status(400).json({ message: "Username already taken" });
+    }
+    if (error.code === 11000) {
+      return res.status(400).json({ message: "User already exists with this email" });
+    }
     console.error("Signup error:", error.message);
     res.status(500).json({
       message: "Server error during signup",
@@ -333,15 +355,9 @@ router.post("/reset-password", async (req, res) => {
 /* ===================== SET USERNAME ===================== */
 router.post("/set-username", authMiddleware, async (req, res) => {
   try {
-    const { username } = req.body;
+    const username = normalizeUsername(req.body.username);
 
-    const existing = await User.findOne({ username });
-
-    if (existing) {
-      return res.status(400).json({
-        message: "Username already taken",
-      });
-    }
+    await assertUsernameFree(username, req.user.userId);
 
     const user = await User.findByIdAndUpdate(
       req.user.userId,
@@ -355,6 +371,10 @@ router.post("/set-username", authMiddleware, async (req, res) => {
     });
 
   } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    if (isUsernameDuplicate(err)) {
+      return res.status(400).json({ message: "Username already taken" });
+    }
     res.status(500).json({
       message: "Failed to set username",
     });
@@ -374,10 +394,6 @@ router.post("/upgrade-member", adminMiddleware, async (req, res) => {
 
     user.accountType = "member";
     user.membershipActive = true;
-
-    if (user.username && !user.username.endsWith("M")) {
-      user.username = user.username + "M";
-    }
 
     await user.save(); // permissions auto-updated
 
@@ -411,10 +427,6 @@ router.post("/upgrade-gm", adminMiddleware, async (req, res) => {
     }
 
     user.accountType = "gm";
-
-    if (user.username && !user.username.endsWith("G")) {
-      user.username = user.username + "G";
-    }
 
     await user.save(); // permissions auto-updated
 

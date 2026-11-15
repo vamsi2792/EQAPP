@@ -24,6 +24,7 @@ const registerUser = async (email, password = "password123") => {
   let res = await api.post("/api/auth/signup", {
     firstName: "Test",
     lastName: email.split("@")[0],
+    username: email.split("@")[0],
     email,
     password,
   });
@@ -66,6 +67,7 @@ test("signup -> verify -> login works, and unverified users cannot log in", asyn
   let res = await api.post("/api/auth/signup", {
     firstName: "F",
     lastName: "L",
+    username: "flowuser",
     email,
     password: "password123",
   });
@@ -79,6 +81,7 @@ test("signup -> verify -> login works, and unverified users cannot log in", asyn
   res = await api.post("/api/auth/signup", {
     firstName: "F",
     lastName: "L",
+    username: "flowuser",
     email,
     password: "password123",
   });
@@ -110,6 +113,7 @@ test("OTP locks after 5 wrong guesses, even if the correct code is then supplied
   await api.post("/api/auth/signup", {
     firstName: "L",
     lastName: "O",
+    username: "lockoutuser",
     email,
     password: "password123",
   });
