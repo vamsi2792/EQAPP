@@ -4,7 +4,6 @@ const router = express.Router();
 const Adventure = require("../models/Adventure");
 const AdventureAccess = require("../models/AdventureAccess");
 const authMiddleware = require("../middleware/auth.middleware");
-const permissionMiddleware = require("../middleware/permission.middleware");
 const { isNonEmptyString, isObjectId } = require("../utils/validate");
 const adventures = require("../services/adventure.service");
 
@@ -44,32 +43,9 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
-/* ===================== CREATE A CODE (Game Masters only) ===================== */
-// A code puts a table of players in one group. `/purchase` is the original name of this
-// route and is kept so existing callers keep working. It is NOT a payment: there is no
-// payment step yet, only the Game Master restriction.
-const createCodeHandler = async (req, res) => {
-  try {
-    const { access, adventure, created } = await adventures.createCode(
-      req.user.userId,
-      req.body.adventureId
-    );
-
-    res.json({
-      message: created ? "Adventure code created" : "You already have a code for this adventure",
-      accessCode: access.accessCode,
-      adventure,
-      group: adventures.summarize(access, adventure, req.user.userId),
-    });
-  } catch (err) {
-    fail(res, err, "Could not create the code");
-  }
-};
-
-router.post("/codes", authMiddleware, permissionMiddleware("canCreateClub"), createCodeHandler);
-router.post("/purchase", authMiddleware, permissionMiddleware("canCreateClub"), createCodeHandler);
-
-/* ===================== ENTER ADVENTURE CODE ===================== */
+/* ===================== ENTER AN ADVENTURE CODE ===================== */
+// Adventures are bought on the website; the payment webhook issues the buyer their codes.
+// There is no way to create a code here.
 router.post("/enter-code", authMiddleware, async (req, res) => {
   try {
     const { code } = req.body;
@@ -78,7 +54,7 @@ router.post("/enter-code", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Code is required" });
     }
 
-    const { group, adventure } = await adventures.joinByCode(req.user.userId, code);
+    const { group, adventure } = await adventures.redeemCode(req.user.userId, code);
 
     res.json({ message: "Access granted", adventure, group });
   } catch (err) {
@@ -86,65 +62,30 @@ router.post("/enter-code", authMiddleware, async (req, res) => {
   }
 });
 
-/* ===================== MY GROUPS ===================== */
-router.get("/groups", authMiddleware, async (req, res) => {
+/* ===================== MY ADVENTURES ===================== */
+router.get("/mine", authMiddleware, async (req, res) => {
   try {
-    res.json(await adventures.listGroups(req.user.userId));
+    res.json(await adventures.listMine(req.user.userId));
   } catch (err) {
-    fail(res, err, "Failed to load groups");
+    fail(res, err, "Failed to load your adventures");
   }
 });
 
-router.get("/groups/:id", authMiddleware, async (req, res) => {
+router.post("/mine/:id/new-code", authMiddleware, async (req, res) => {
   try {
-    res.json(await adventures.getGroup(req.user.userId, req.params.id));
-  } catch (err) {
-    fail(res, err, "Failed to load group");
-  }
-});
-
-router.post("/groups/:id/leave", authMiddleware, async (req, res) => {
-  try {
-    await adventures.leaveGroup(req.user.userId, req.params.id);
-    res.json({ message: "You left the group" });
-  } catch (err) {
-    fail(res, err, "Failed to leave group");
-  }
-});
-
-router.delete("/groups/:id", authMiddleware, async (req, res) => {
-  try {
-    await adventures.deleteGroup(req.user.userId, req.params.id);
-    res.json({ message: "Group deleted" });
-  } catch (err) {
-    fail(res, err, "Failed to delete group");
-  }
-});
-
-router.post("/groups/:id/remove", authMiddleware, async (req, res) => {
-  try {
-    await adventures.removePlayer(req.user.userId, req.params.id, req.body.userId);
-    res.json({ message: "Player removed" });
-  } catch (err) {
-    fail(res, err, "Failed to remove player");
-  }
-});
-
-router.post("/groups/:id/new-code", authMiddleware, async (req, res) => {
-  try {
-    await adventures.rotateCode(req.user.userId, req.params.id);
-    res.json(await adventures.getGroup(req.user.userId, req.params.id));
+    await adventures.rotateMemberCode(req.user.userId, req.params.id);
+    res.json(await adventures.listMine(req.user.userId));
   } catch (err) {
     fail(res, err, "Failed to create a new code");
   }
 });
 
-router.post("/groups/:id/active", authMiddleware, async (req, res) => {
+router.post("/mine/:id/active", authMiddleware, async (req, res) => {
   try {
     await adventures.setActive(req.user.userId, req.params.id, req.body.isActive);
-    res.json(await adventures.getGroup(req.user.userId, req.params.id));
+    res.json(await adventures.listMine(req.user.userId));
   } catch (err) {
-    fail(res, err, "Failed to update the group");
+    fail(res, err, "Failed to update the adventure");
   }
 });
 
@@ -159,7 +100,7 @@ router.get("/my-adventures", authMiddleware, async (req, res) => {
     }).populate("adventure");
 
     const mine = accesses.map((a) => ({
-      ...(String(a.owner) === String(userId) && { accessCode: a.accessCode }),
+      ...(String(a.owner) === String(userId) && { accessCode: a.accessCode, gmCode: a.gmCode }),
       adventure: a.adventure,
     }));
 

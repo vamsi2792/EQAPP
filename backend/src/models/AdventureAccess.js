@@ -22,6 +22,9 @@ const AdventureAccessSchema = new mongoose.Schema(
       unique: true,
     },
 
+    // Code for the Game Mentor only (redeemable by the owner, nobody else)
+    gmCode: { type: String, unique: true, sparse: true },
+
     // 👥 Players using this adventure
     players: [
       {

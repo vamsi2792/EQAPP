@@ -19,6 +19,9 @@ const AdventureSchema = new mongoose.Schema(
 
     order: { type: Number, default: 0 },
 
+    // true = buying this adventure makes the buyer a Game Mentor (and they run it for a club).
+    requiresGM: { type: Boolean, default: false },
+
     description: String,
 
     // Optional: only the old map endpoint pins adventures by location.
