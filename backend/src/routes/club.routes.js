@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
+const mongoose = require("mongoose");
 const Club = require("../models/Club");
 const User = require("../models/User");
 
@@ -160,6 +161,33 @@ router.delete("/me", authMiddleware, async (req, res) => {
   }
 });
 
+/* ===================== FIND A CLUB BY NAME ===================== */
+// Members search for a club by name and ask to join; the code is never revealed here.
+router.get("/search", authMiddleware, async (req, res) => {
+  try {
+    const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+    if (q.length < 2) return res.status(400).json({ message: "Type at least 2 characters" });
+
+    const escaped = q.slice(0, NAME_MAX).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const found = await Club.find(
+      { clubName: mongoose.trusted({ $regex: escaped, $options: "i" }) }
+    )
+      .sort({ clubName: 1 })
+      .limit(20);
+
+    res.json(
+      found.map((c) => ({
+        id: c._id,
+        clubName: c.clubName,
+        bio: c.bio || "",
+        memberCount: c.members.length,
+      }))
+    );
+  } catch (err) {
+    fail(res, err, "Club search failed");
+  }
+});
+
 /* ===================== JOIN CLUB ===================== */
 router.post(
   "/join",
@@ -167,10 +195,10 @@ router.post(
   permissionMiddleware("canJoinClub"),
   async (req, res) => {
     try {
-      const { clubCode } = req.body;
+      const { clubCode, clubId } = req.body;
 
-      if (!isNonEmptyString(clubCode)) {
-        return res.status(400).json({ message: "Club code is required" });
+      if (!isNonEmptyString(clubCode) && !isObjectId(clubId)) {
+        return res.status(400).json({ message: "Club code or club is required" });
       }
 
       // One club at a time: a second request would leave stale entries in the first club.
@@ -184,7 +212,9 @@ router.post(
         );
       }
 
-      const club = await Club.findOne({ clubCode: clubCode.trim().toUpperCase() });
+      const club = isObjectId(clubId)
+        ? await Club.findById(clubId)
+        : await Club.findOne({ clubCode: clubCode.trim().toUpperCase() });
 
       if (!club) {
         return res.status(404).json({ message: "Club not found" });

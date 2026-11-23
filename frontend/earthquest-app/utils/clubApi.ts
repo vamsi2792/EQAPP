@@ -75,8 +75,15 @@ export const createClub = (fields: ClubFields) => request<unknown>("POST", "/cre
 export const updateClub = (fields: ClubFields) => request<MyClub>("PATCH", "/me", fields);
 export const deleteClub = () => request<Done>("DELETE", "/me");
 
+export type ClubSearchResult = { id: string; clubName: string; bio: string; memberCount: number };
+
+export const searchClubs = (q: string) =>
+  request<ClubSearchResult[]>("GET", `/search?q=${encodeURIComponent(q)}`);
+
 export const joinClub = (clubCode: string) =>
   request<Done & { clubName: string }>("POST", "/join", { clubCode });
+export const requestToJoin = (clubId: string) =>
+  request<Done & { clubName: string }>("POST", "/join", { clubId });
 export const leaveClub = () => request<Done>("POST", "/leave");
 
 const member = (path: string) => (memberId: string) => request<Done>("POST", path, { memberId });

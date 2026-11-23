@@ -12,7 +12,7 @@ const profileRoutes = require("./routes/profile.routes");
 const arcgisRoutes = require("./routes/arcgis.routes");
 const scenarioRoutes = require("./routes/scenario.routes");
 const chatRoutes = require("./routes/chat.routes");
-const gmRoutes = require("./routes/gm.routes");
+const paymentRoutes = require("./routes/payment.routes");
 const { allowedOrigins } = require("./config/cors");
 const { UPLOAD_ROOT } = require("./utils/imageUpload");
 // const productRoutes = require("./routes/product.routes");
@@ -28,6 +28,9 @@ const app = express();
 app.use(helmet({ contentSecurityPolicy: false }));
 
 app.use(cors(allowedOrigins.length ? { origin: allowedOrigins } : undefined));
+
+// Stripe webhook needs the raw body, so it is mounted before the JSON parser.
+app.use("/api/payments", paymentRoutes);
 
 app.use(express.json({ limit: "100kb" }));
 
@@ -78,7 +81,6 @@ app.use("/api/club", clubRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/scenarios", scenarioRoutes);
 app.use("/api/chat", chatLimiter, chatRoutes);
-app.use("/api/gm", gmRoutes);
 app.use("/api", arcgisRoutes);
 // app.use("/products", productRoutes);
 

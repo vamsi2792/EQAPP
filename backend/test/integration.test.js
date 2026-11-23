@@ -11,6 +11,7 @@ const { start } = require("./helpers");
 
 const User = require("../src/models/User");
 const Adventure = require("../src/models/Adventure");
+const AdventureAccess = require("../src/models/AdventureAccess");
 
 let mongod;
 let api;
@@ -315,14 +316,15 @@ test("adventure access codes cannot be guessed with query operators", async () =
   const owner = await registerGm("owner@example.com");
   const stranger = await registerUser("stranger@example.com");
 
-  let res = await api.post(
-    "/api/adventures/purchase",
-    { adventureId: String(adventure._id) },
-    bearer(owner.token)
-  );
-  assert.equal(res.status, 200);
-  const { accessCode } = await json(res);
-  assert.match(accessCode, /^[A-Z2-9]{6}$/);
+  // Codes are issued by the payment webhook; here one is created directly.
+  const accessCode = "ABCD23";
+  await AdventureAccess.create({
+    adventure: adventure._id,
+    owner: owner.id,
+    accessCode,
+    players: [owner.id],
+  });
+  let res;
 
   // Operator injection no longer matches someone else's code.
   for (const code of [{ $ne: null }, { $gt: "" }, { $regex: ".*" }]) {
@@ -336,14 +338,13 @@ test("adventure access codes cannot be guessed with query operators", async () =
   res = await api.get(`/api/adventures/${adventure._id}`, bearer(stranger.token));
   assert.equal(res.status, 403);
 
+  // The real code still needs membership of the owner's club, which a stranger lacks.
   res = await api.post(
     "/api/adventures/enter-code",
     { code: accessCode.toLowerCase() },
     bearer(stranger.token)
   );
-  assert.equal(res.status, 200);
-  res = await api.get(`/api/adventures/${adventure._id}`, bearer(stranger.token));
-  assert.equal(res.status, 200);
+  assert.equal(res.status, 403);
 
   // Only the owner can deactivate a code.
   res = await api.post("/api/adventures/deactivate", { accessCode }, bearer(stranger.token));

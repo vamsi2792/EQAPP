@@ -177,35 +177,11 @@ export default function LandingScreen({ navigation }: any) {
               style={styles.modalButton}
               onPress={() => {
                 setMenuVisible(false);
-                navigation.navigate("AdventureGroups");
+                navigation.navigate("MyAdventures");
               }}
             >
-              <Text style={styles.modalButtonText}>Adventure groups</Text>
+              <Text style={styles.modalButtonText}>My adventures</Text>
             </TouchableOpacity>
-
-            {!isGm && (
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={() => {
-                  setMenuVisible(false);
-                  navigation.navigate("GmApply");
-                }}
-              >
-                <Text style={styles.modalButtonText}>Become a Game Mentor</Text>
-              </TouchableOpacity>
-            )}
-
-            {isAdmin && (
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={() => {
-                  setMenuVisible(false);
-                  navigation.navigate("GmReview");
-                }}
-              >
-                <Text style={styles.modalButtonText}>Review Game Mentors</Text>
-              </TouchableOpacity>
-            )}
 
             {/* Chat moderation: only for admins */}
             {isAdmin && (

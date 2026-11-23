@@ -14,22 +14,40 @@ friend requests and no player search. Pending club members are not connected yet
 | Club | Done | **Done** (Club screen, real API) |
 | Adventure code | Done (`/api/adventures/*`) | **Done** (Adventure groups screen) |
 
-## Adventure codes and groups
+## Purchases, Game Mentors and adventure codes
 
-- A **Game Master** creates a code for an open adventure (one code per GM per adventure)
-  and shares it; **any verified player** enters a code to join that GM's group. A group
-  is just a set of players: it **does not unlock** the adventure, the map or any content
-  (those stay open to everyone). Its purpose is to let a table of players see each other
-  and chat.
-- The adventure list now comes from the server (a small catalogue seeded with
-  `npm run seed:adventures`: Adventure 1 open, 2 and 3 "Coming Soon"). Locked adventures
-  cannot get or redeem codes.
-- Only the group's owner sees the code. The owner can pause or resume new joins, replace
-  the code (the old one stops working, players stay), remove a player, or delete the group.
-  Players can leave. Leaving, removal or deletion ends the chat link.
-- Entering a code twice no longer adds the player twice (bug fixed).
-- Codes are still free: there is no payment step, only the Game Master restriction.
-- Not built: code expiry, locking content behind a code, group chat.
+This replaces the earlier "adventure groups" and "Game Mentor application" designs, which
+were removed.
+
+- **Everything is bought on the website** (Stripe). The app's storefront only redirects
+  there: membership ($10), adventures, and free downloads such as the Player Handbook PDF
+  (hosted on the website, not by the app).
+- **Webhook:** `POST /api/payments/stripe/webhook` verifies Stripe's signature
+  (`STRIPE_WEBHOOK_SECRET`) and handles `checkout.session.completed` when paid. The website
+  must create each Checkout Session with `client_reference_id` = the buyer's EarthQuest
+  user id (fallback: matching the customer email) and `metadata.kind` = `membership` or
+  `adventure` (plus `metadata.adventureSlug`, e.g. `eq1`, for adventures).
+  Fulfilment is idempotent (one `Purchase` row per session); payments that match no
+  account or adventure are saved with `fulfilled: false` for an admin to resolve.
+- **Membership** sets the account to member (a Game Mentor stays one).
+- **Buying an adventure** gives the buyer two codes: a **Game Mentor code** (8 characters,
+  redeemable only by the buyer) and a **member code** (6 characters) to hand to their
+  club. Adventures with `requiresGM` also make the buyer a Game Mentor; others do not.
+  (This is how "a GM condition on certain adventures" was read; change `requiresGM` per
+  adventure in the database.)
+- **Joining an adventure** with the member code works only for approved members of the
+  Game Mentor's club. Wrong, paused and not-yours codes all answer "Invalid code".
+- The Game Mentor can pause or replace the member code (`/api/adventures/mine/...`).
+- **Clubs:** a member finds a club by name (`GET /api/club/search?q=`) and asks to join
+  (`POST /api/club/join` with `clubId`); the GM approves or declines. A club code still works.
+- Chat contacts are still club mates plus adventure co-players, so they are club mates in
+  practice.
+- Removed: the free `/codes` and `/purchase` routes, adventure groups, and the Game Mentor
+  application, review and revoke flow with its code of conduct.
+- App: Landing menu > "My adventures" (enter a code; Game Mentors see and share their
+  codes, replace the member code, pause joining). Club screen has search by name. The
+  storefront opens the website (`EXPO_PUBLIC_STORE_URL`, default `https://earthquest.com`).
+- Not done here: the website creating Checkout Sessions (see above).
 
 ## Chat
 
@@ -75,36 +93,8 @@ friend requests and no player search. Pending club members are not connected yet
   the club. The GM cannot leave; they delete the club.
 - Not built: club images, transferring GM ownership, join-request notifications.
 
-## Game Mentors (GMs)
-
-The ladder: **player** (any verified account), **member** (the $10 annual membership,
-sold on the website), **Game Mentor** (a member who applies and is approved).
-
-- **Only members can apply.** In the app: Landing menu > "Become a Game Mentor" (also linked
-  from the Club and Adventure groups screens for non-GMs). The player reads the code of
-  conduct, ticks "I agree", and writes a short message (20-500 characters). One
-  application can be pending at a time; a declined player may apply again.
-- **The code of conduct** lives in `backend/src/utils/conduct.js` and is a **first draft:
-  edit the wording**. When its meaning changes, change its `version` so people are asked to
-  agree to the latest text. The last point tells applicants that revoking GM status deletes
-  their club and groups.
-- **The EarthQuest team decides.** Accounts whose verified email is in `ADMIN_EMAILS` see
-  Landing menu > "Review Game Mentors": approve or decline applications (with an optional
-  note the applicant sees), and a list of current Game Mentors.
-- **Revoking** a Game Mentor sends them back to member (or registrant if the membership is
-  not active) and **deletes their club and every adventure group they own**; the people in
-  them are freed and no longer connected. The confirmation spells out what will be deleted.
-- Membership itself is still granted by an admin (`/api/auth/upgrade-member` with
-  `ADMIN_API_KEY`); the app cannot tell when someone has paid on the website. The
-  admin-key routes `/upgrade-member` and `/upgrade-gm` remain as a manual override.
-- Not built: email or push notice of decisions (applicants see the result in the app),
-  appeals, a re-apply cool-down, transferring a club instead of deleting it, and an audit
-  log beyond the reviewer and timestamp on each application.
-
 ## Known gaps (from the code review)
 
-- Adventure codes (`POST /api/adventures/codes`, alias `/purchase`) are Game Master only
-  but still **free**: there is no payment step.
 - Admin-uploaded scenario images are stored on local disk and will disappear on hosts
   with ephemeral storage; move to object storage before deploying.
 - Verification emails use Gmail SMTP (a daily sending cap); use a transactional email
@@ -133,11 +123,10 @@ sold on the website), **Game Mentor** (a member who applies and is approved).
 
 ## Next steps
 
-1. A real membership step: detect the website purchase (or a payment inside the app), so an
-   admin no longer has to grant membership by hand.
-2. Real payment, or a decision that codes stay free.
-3. Optional: unread badges, push notifications, club images, a blocked-players list,
-   code expiry.
+1. Website: create Checkout Sessions with `client_reference_id` and `metadata` as above,
+   and register the webhook in Stripe.
+2. Set `requiresGM` on the adventures that should make the buyer a Game Mentor.
+3. Optional: unread badges, push notifications, club images, a blocked-players list.
 
 ## Continuing later
 
