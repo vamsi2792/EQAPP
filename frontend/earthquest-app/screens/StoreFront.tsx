@@ -10,7 +10,9 @@ import {
   Linking,
 } from "react-native";
 
-// 🛍️ Mock Product Data
+const STORE_URL = process.env.EXPO_PUBLIC_STORE_URL || "https://earthquest.com";
+
+// Product data (the website sells these)
 const STORE_PRODUCTS = [
   {
     id: "1",
@@ -53,21 +55,11 @@ export default function StorefrontScreen({ navigation }: any) {
   // MOCK STATE: Change this to 'member' or 'gm' to test access
   const [currentUserRole, setCurrentUserRole] = useState<"registered" | "member" | "gm">("registered");
 
-  const handleAddToCart = (product: any) => {
-    // 🛑 Check if user is logged in & is a member
-    if (currentUserRole !== "member" && currentUserRole !== "gm") {
-      Alert.alert(
-        "Membership Required",
-        "You must be an active EarthQuest Member to access the storefront.",
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Scroll down to Upgrade", style: "default" }
-        ]
-      );
-      return;
-    }
-    // ✅ Proceed if they are a member
-    Alert.alert("Added to Cart", `${product.title} has been added to your inventory.`);
+  // Everything is bought on the website; the app only sends people there.
+  const handleAddToCart = (_product: any) => {
+    Linking.openURL(STORE_URL).catch(() =>
+      Alert.alert("Could not open the website", `Please visit ${STORE_URL}`)
+    );
   };
 
   // 📦 RENDER: Store Product Card
@@ -125,7 +117,7 @@ export default function StorefrontScreen({ navigation }: any) {
         <Text style={styles.upgradeTitle}>Upgrade on Our Website</Text>
         <TouchableOpacity 
           style={styles.priceCard}
-          onPress={() => Linking.openURL('https://earthquest.com/membership')}
+          onPress={() => Linking.openURL(`${STORE_URL}/membership`)}
         >
           <View style={styles.cardLeft}>
              <View style={styles.iconCircle}>

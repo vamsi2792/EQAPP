@@ -74,9 +74,9 @@ export default function AdventureSelectScreen({ navigation }: any) {
           </Pressable>
         ))}
 
-        <Pressable style={styles.groupsButton} onPress={() => navigation.navigate("AdventureGroups")}>
-          <Text style={styles.groupsTitle}>👥 Play with others</Text>
-          <Text style={styles.groupsText}>Enter a code, or manage your adventure groups</Text>
+        <Pressable style={styles.groupsButton} onPress={() => navigation.navigate("MyAdventures")}>
+          <Text style={styles.groupsTitle}>My adventures</Text>
+          <Text style={styles.groupsText}>Enter a code from your Game Mentor, or see your codes</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

@@ -44,8 +44,10 @@ were removed.
   practice.
 - Removed: the free `/codes` and `/purchase` routes, adventure groups, and the Game Mentor
   application, review and revoke flow with its code of conduct.
-- Not done: the app screens still call the removed routes (see Next steps), and nothing
-  creates the Stripe Checkout Sessions: that lives on the website.
+- App: Landing menu > "My adventures" (enter a code; Game Mentors see and share their
+  codes, replace the member code, pause joining). Club screen has search by name. The
+  storefront opens the website (`EXPO_PUBLIC_STORE_URL`, default `https://earthquest.com`).
+- Not done here: the website creating Checkout Sessions (see above).
 
 ## Chat
 
@@ -121,14 +123,10 @@ were removed.
 
 ## Next steps
 
-1. **App screens** (not yet updated): remove the Game Mentor apply/review screens
-   (`GmApplyScreen`, `GmReviewScreen`, `utils/gmApi.ts`) and `AdventureGroupsScreen`; add a
-   "My adventures" screen using `/api/adventures/mine`, a club search screen, and a
-   storefront screen that opens the website.
-2. Website: create Checkout Sessions with `client_reference_id` and `metadata` as above,
+1. Website: create Checkout Sessions with `client_reference_id` and `metadata` as above,
    and register the webhook in Stripe.
-3. Set `requiresGM` on the adventures that should make the buyer a Game Mentor.
-4. Optional: unread badges, push notifications, club images, a blocked-players list.
+2. Set `requiresGM` on the adventures that should make the buyer a Game Mentor.
+3. Optional: unread badges, push notifications, club images, a blocked-players list.
 
 ## Continuing later
 

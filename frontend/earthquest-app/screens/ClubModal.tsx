@@ -27,6 +27,9 @@ import {
   deleteClub,
   getMyClub,
   joinClub,
+  requestToJoin,
+  searchClubs,
+  ClubSearchResult,
   kickMember,
   leaveClub,
   removeModerator,
@@ -64,6 +67,8 @@ export default function ClubScreen({ navigation }: any) {
   const [tab, setTab] = useState<Tab>("members");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState("");
+  const [searchText, setSearchText] = useState("");
+  const [results, setResults] = useState<ClubSearchResult[] | null>(null);
   const [form, setForm] = useState({ clubName: "", bio: "", discord: "" });
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const [confirmError, setConfirmError] = useState("");
@@ -119,6 +124,18 @@ export default function ClubScreen({ navigation }: any) {
   const askConfirm = (c: Confirm) => {
     setConfirmError("");
     setConfirm(c);
+  };
+
+  const doSearch = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      setResults(await searchClubs(searchText.trim()));
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const runConfirmed = async () => {
@@ -241,8 +258,48 @@ export default function ClubScreen({ navigation }: any) {
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text style={styles.sectionTitle}>Join a club</Text>
       <Text style={styles.muted}>
-        Ask your Game Master for the club code. They will approve your request.
+        Search for a club by name, or enter a club code. The Game Mentor will approve your request.
       </Text>
+
+      <View style={styles.joinRow}>
+        <TextInput
+          style={[styles.input, { flex: 1, marginBottom: 0 }]}
+          value={searchText}
+          onChangeText={setSearchText}
+          placeholder="Club name"
+          placeholderTextColor="#8DBFA1"
+          autoCorrect={false}
+          maxLength={60}
+          onSubmitEditing={doSearch}
+        />
+        <TouchableOpacity
+          style={[styles.joinButton, (searchText.trim().length < 2 || busy) && styles.disabled]}
+          onPress={doSearch}
+          disabled={searchText.trim().length < 2 || busy}
+        >
+          <Text style={styles.primaryText}>Search</Text>
+        </TouchableOpacity>
+      </View>
+
+      {results !== null && results.length === 0 && <Text style={styles.muted}>No clubs found.</Text>}
+      {(results || []).map((c) => (
+        <View key={c.id} style={{ marginTop: 12 }}>
+          <Text style={styles.sectionTitle}>{c.clubName}</Text>
+          {!!c.bio && <Text style={styles.muted}>{c.bio}</Text>}
+          <Text style={styles.muted}>{c.memberCount} members</Text>
+          <TouchableOpacity
+            style={[styles.secondary, busy && styles.disabled]}
+            disabled={busy}
+            onPress={async () => {
+              if (await run(() => requestToJoin(c.id))) setResults(null);
+            }}
+          >
+            <Text style={styles.secondaryText}>Ask to join</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+
+      <Text style={[styles.muted, { marginTop: 20 }]}>Or enter a club code:</Text>
 
       <View style={styles.joinRow}>
         <TextInput
@@ -289,11 +346,8 @@ export default function ClubScreen({ navigation }: any) {
         <>
           <Text style={[styles.sectionTitle, { marginTop: 28 }]}>Want to lead a club?</Text>
           <Text style={styles.muted}>
-            Clubs are run by Game Mentors. Members can apply to become one.
+            Clubs are run by Game Mentors. You become one by buying an adventure on our website.
           </Text>
-          <TouchableOpacity style={styles.secondary} onPress={() => navigation.navigate("GmApply")}>
-            <Text style={styles.secondaryText}>Become a Game Mentor</Text>
-          </TouchableOpacity>
         </>
       )}
     </ScrollView>

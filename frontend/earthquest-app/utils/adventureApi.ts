@@ -8,26 +8,19 @@ export type CatalogueAdventure = {
   title: string;
   subtitle: string;
   unlocked: boolean;
+  requiresGM: boolean;
 };
 
-export type GroupSummary = {
+export type MyAdventure = {
   id: string;
   adventure: { id: string; title: string; subtitle: string };
   role: "owner" | "player";
   playerCount: number;
-  // Only the group's owner receives these.
-  code?: string;
+  // Only the Game Mentor who bought the adventure receives these.
+  memberCode?: string;
+  gmCode?: string | null;
   isActive?: boolean;
 };
-
-export type GroupPerson = {
-  id: string;
-  name: string;
-  username: string | null;
-  role?: "owner" | "player";
-};
-
-export type GroupDetail = GroupSummary & { players: GroupPerson[] };
 
 export class AdventureApiError extends Error {
   status: number;
@@ -71,20 +64,10 @@ type Done = { message: string };
 
 export const fetchAdventures = () => request<CatalogueAdventure[]>("GET", "");
 
-/** Game Masters only. Returns the group (with its code) for that adventure. */
-export const createCode = (adventureId: string) =>
-  request<{ accessCode: string; group: GroupSummary }>("POST", "/codes", { adventureId });
-
 export const enterCode = (code: string) =>
-  request<{ message: string; group: GroupSummary }>("POST", "/enter-code", { code });
+  request<{ message: string; group: MyAdventure }>("POST", "/enter-code", { code });
 
-export const fetchGroups = () => request<GroupSummary[]>("GET", "/groups");
-export const fetchGroup = (id: string) => request<GroupDetail>("GET", `/groups/${id}`);
-
-export const leaveGroup = (id: string) => request<Done>("POST", `/groups/${id}/leave`);
-export const deleteGroup = (id: string) => request<Done>("DELETE", `/groups/${id}`);
-export const removePlayer = (id: string, userId: string) =>
-  request<Done>("POST", `/groups/${id}/remove`, { userId });
-export const newCode = (id: string) => request<GroupDetail>("POST", `/groups/${id}/new-code`);
-export const setGroupActive = (id: string, isActive: boolean) =>
-  request<GroupDetail>("POST", `/groups/${id}/active`, { isActive });
+export const fetchMine = () => request<MyAdventure[]>("GET", "/mine");
+export const newMemberCode = (id: string) => request<MyAdventure[]>("POST", `/mine/${id}/new-code`);
+export const setAdventureActive = (id: string, isActive: boolean) =>
+  request<MyAdventure[]>("POST", `/mine/${id}/active`, { isActive });
